@@ -1,0 +1,25 @@
+import { trpc } from "@/lib/trpc";
+import { ArrowRight, Bot, CheckCircle2, CircleDashed, Clock3, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+type TaskStatus = "queued" | "in_progress" | "completed";
+const columns: { status: TaskStatus; title: string; detail: string; icon: typeof Clock3 }[] = [
+  { status: "queued", title: "Queued", detail: "Ready for a clear starting signal", icon: Clock3 },
+  { status: "in_progress", title: "In progress", detail: "Active agent work", icon: CircleDashed },
+  { status: "completed", title: "Completed", detail: "Finished and ready to review", icon: CheckCircle2 },
+];
+
+export default function Agents() {
+  const utils = trpc.useUtils();
+  const { data } = trpc.workspace.overview.useQuery();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [detail, setDetail] = useState("");
+  const [projectId, setProjectId] = useState<number | null>(null);
+  const createTask = trpc.workspace.createTask.useMutation({ onSuccess: async () => { await utils.workspace.overview.invalidate(); toast.success("Agent task added to the queue."); setTitle(""); setDetail(""); setOpen(false); }, onError: (error) => toast.error(error.message) });
+  const updateStatus = trpc.workspace.updateTaskStatus.useMutation({ onSuccess: () => utils.workspace.overview.invalidate(), onError: (error) => toast.error(error.message) });
+  const tasks = data?.tasks ?? [];
+
+  return <section className="space-y-7"><div className="subby-page-heading"><div><p className="eyebrow">AGENT TASKS</p><h1>Direct the work. Keep momentum visible.</h1><p>Capture self-contained coding tasks, guide them through the queue, and retain a simple record of each result.</p></div><button className="subby-primary-button" onClick={() => setOpen(true)}><Plus className="size-4" /> Add task</button></div><div className="agent-intro"><Bot className="size-5" /><span>SUBBY’s task board keeps your workflow legible. Task execution automation is not enabled here; move work between stages as it progresses.</span></div><div className="agent-board">{columns.map((column) => { const Icon = column.icon; const tasksForColumn = tasks.filter((task) => task.status === column.status); return <section key={column.status} className="agent-column"><header><div className={`agent-column-icon ${column.status}`}><Icon className="size-4" /></div><div><h2>{column.title}<span>{tasksForColumn.length}</span></h2><p>{column.detail}</p></div></header><div className="agent-task-stack">{tasksForColumn.map((task) => <article className="agent-task-card" key={task.id}><div className="agent-task-card-top"><p>{task.title}</p><span className={`task-state ${task.status}`}><CircleDashed className="size-3.5" /></span></div>{task.detail && <small>{task.detail}</small>}<div className="agent-task-actions">{column.status !== "queued" && <button onClick={() => updateStatus.mutate({ id: task.id, status: column.status === "completed" ? "in_progress" : "queued" })}>Move back</button>}{column.status !== "completed" && <button onClick={() => updateStatus.mutate({ id: task.id, status: column.status === "queued" ? "in_progress" : "completed" })}>{column.status === "queued" ? "Start work" : "Complete"}<ArrowRight className="size-3.5" /></button>}</div></article>)}{!tasksForColumn.length && <div className="agent-empty-card">No tasks here yet.</div>}</div></section>; })}</div>{open && <div className="subby-modal-backdrop" role="presentation"><section className="subby-modal" role="dialog" aria-modal="true" aria-labelledby="new-task-title"><button className="modal-close" onClick={() => setOpen(false)} aria-label="Close add task dialog"><X className="size-4" /></button><p className="eyebrow">ADD AGENT TASK</p><h2 id="new-task-title">Define a clear unit of work.</h2><p className="modal-copy">Give the task a crisp outcome so its progress is easy to understand at a glance.</p><form className="subby-form" onSubmit={(event) => { event.preventDefault(); createTask.mutate({ title, detail: detail || undefined, projectId }); }}><label>Task title<input autoFocus required minLength={2} maxLength={180} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Validate the API error handling" /></label><label>Details <span>optional</span><textarea rows={4} maxLength={1000} value={detail} onChange={(event) => setDetail(event.target.value)} placeholder="Describe the outcome or constraints." /></label><label>Project <span>optional</span><select value={projectId ?? "none"} onChange={(event) => setProjectId(event.target.value === "none" ? null : Number(event.target.value))}><option value="none">General workspace</option>{(data?.projects ?? []).map((project) => <option value={project.id} key={project.id}>{project.name}</option>)}</select></label><button disabled={createTask.isPending} type="submit" className="subby-primary-button w-full">{createTask.isPending ? "Adding task…" : "Add to queue"}<ArrowRight className="size-4" /></button></form></section></div>}</section>;
+}
