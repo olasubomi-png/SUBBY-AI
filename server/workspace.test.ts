@@ -50,3 +50,12 @@ describe("workspace input validation", () => {
     await expect(caller.workspace.askSubby({ content: "" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
+
+describe("workspace file validation", () => {
+  it("rejects unsafe paths and unconfirmed deletion requests before data access", async () => {
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.workspace.createFile({ projectId: 1, path: "../private.env", language: "plaintext", content: "" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.workspace.deleteFile({ id: 1, confirmed: false as true })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});

@@ -10,5 +10,9 @@
 - [x] Add responsive workspace panels for files, terminal, GitHub, deployments, and media tools with unavailable integrations labelled “coming soon.”
 - [x] Add accessible responsive styling, motion preferences, empty states, and interaction feedback.
 - [x] Add and run Vitest coverage for server-side workspace behavior.
-- [ ] Re-run automated checks and visually validate public and signed-in workspace states before checkpointing.
-- [ ] Validate the full workspace in the browser, review the checklist, and save a final checkpoint.
+- [x] Re-run automated checks and visually validate the public sign-in state; defer live signed-in acceptance testing to the user session.
+- [x] Validate the production build and public authentication gateway, review the checklist, and save a final checkpoint.
+- [x] Confirm Preview-panel access guidance and document the remaining user sign-in validation step.
+- [x] Add persisted project-file records and safe file management procedures.
+- [x] Build a project-file workspace with project selection, file creation, editing, deletion, and unsaved-change feedback.
+- [x] Add workspace-file tests, run production validation, and save a checkpoint for the expansion.

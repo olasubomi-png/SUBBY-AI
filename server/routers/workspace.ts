@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { activityEvents, agentTasks, chatMessages, projects } from "../../drizzle/schema";
+import { activityEvents, agentTasks, chatMessages, projects, workspaceFiles } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { invokeLLM, listLLMModels } from "../_core/llm";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -10,6 +10,13 @@ const taskStatus = z.enum(["queued", "in_progress", "completed"]);
 const chatInput = z.object({
   projectId: z.number().int().positive().nullable().optional(),
   content: z.string().trim().min(1).max(8000),
+});
+const filePath = z.string().trim().min(1).max(240).regex(/^(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9_./@+\- ]+$/, "Use a relative path without '..'.");
+const fileInput = z.object({
+  projectId: z.number().int().positive(),
+  path: filePath,
+  language: z.string().trim().min(1).max(32).default("plaintext"),
+  content: z.string().max(50000).default(""),
 });
 
 function asDateTime(value: Date | string | null | undefined) {
@@ -29,6 +36,14 @@ async function appendActivity(
     title: input.title,
     detail: input.detail ?? null,
   });
+}
+
+async function requireProjectAccess(userId: number, projectId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Workspace storage is currently unavailable.");
+  const [project] = await db.select({ id: projects.id, name: projects.name }).from(projects).where(and(eq(projects.id, projectId), eq(projects.userId, userId))).limit(1);
+  if (!project) throw new Error("Project not found.");
+  return { db, project };
 }
 
 export const workspaceRouter = router({
@@ -143,5 +158,48 @@ export const workspaceRouter = router({
       const [result] = await db.insert(chatMessages).values({ userId: ctx.user.id, projectId: input.projectId ?? null, role: "assistant", content });
       await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "chat", title: "Asked SUBBY", detail: input.content.slice(0, 96) });
       return { id: result.insertId, content };
+    }),
+
+  listFiles: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+      const { db } = await requireProjectAccess(ctx.user.id, input.projectId);
+      const files = await db.select().from(workspaceFiles).where(and(eq(workspaceFiles.userId, ctx.user.id), eq(workspaceFiles.projectId, input.projectId))).orderBy(workspaceFiles.path);
+      return files.map((file) => ({ ...file, createdAt: asDateTime(file.createdAt), updatedAt: asDateTime(file.updatedAt) }));
+    }),
+
+  createFile: protectedProcedure
+    .input(fileInput)
+    .mutation(async ({ ctx, input }) => {
+      const { db, project } = await requireProjectAccess(ctx.user.id, input.projectId);
+      const [result] = await db.insert(workspaceFiles).values({ userId: ctx.user.id, ...input });
+      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "workspace", title: `Created ${input.path}`, detail: project.name });
+      return { id: result.insertId };
+    }),
+
+  updateFile: protectedProcedure
+    .input(z.object({ id: z.number().int().positive(), path: filePath.optional(), language: z.string().trim().min(1).max(32).optional(), content: z.string().max(50000).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [file] = await db.select().from(workspaceFiles).where(and(eq(workspaceFiles.id, input.id), eq(workspaceFiles.userId, ctx.user.id))).limit(1);
+      if (!file) throw new Error("File not found.");
+      const changes = { ...(input.path !== undefined ? { path: input.path } : {}), ...(input.language !== undefined ? { language: input.language } : {}), ...(input.content !== undefined ? { content: input.content } : {}) };
+      if (!Object.keys(changes).length) return { success: true };
+      await db.update(workspaceFiles).set(changes).where(eq(workspaceFiles.id, input.id));
+      await appendActivity(ctx.user.id, { projectId: file.projectId, kind: "workspace", title: `Updated ${changes.path ?? file.path}`, detail: "Project file" });
+      return { success: true };
+    }),
+
+  deleteFile: protectedProcedure
+    .input(z.object({ id: z.number().int().positive(), confirmed: z.literal(true) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [file] = await db.select().from(workspaceFiles).where(and(eq(workspaceFiles.id, input.id), eq(workspaceFiles.userId, ctx.user.id))).limit(1);
+      if (!file) throw new Error("File not found.");
+      await db.delete(workspaceFiles).where(eq(workspaceFiles.id, input.id));
+      await appendActivity(ctx.user.id, { projectId: file.projectId, kind: "workspace", title: `Deleted ${file.path}`, detail: "Project file" });
+      return { success: true };
     }),
 });

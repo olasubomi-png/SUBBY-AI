@@ -10,6 +10,7 @@ import ComingSoon from "./pages/ComingSoon";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import Projects from "./pages/Projects";
+import Workspace from "./pages/Workspace";
 
 function Router() {
   return <DashboardLayout><Switch>
@@ -17,7 +18,7 @@ function Router() {
     <Route path="/projects" component={Projects} />
     <Route path="/chat" component={Chat} />
     <Route path="/agents" component={Agents} />
-    <Route path="/workspace">{() => <ComingSoon area="workspace" />}</Route>
+    <Route path="/workspace" component={Workspace} />
     <Route path="/terminal">{() => <ComingSoon area="terminal" />}</Route>
     <Route path="/github">{() => <ComingSoon area="github" />}</Route>
     <Route path="/deployments">{() => <ComingSoon area="deployments" />}</Route>

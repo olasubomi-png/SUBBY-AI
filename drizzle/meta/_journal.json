@@ -15,6 +15,13 @@
       "when": 1787528594927,
       "tag": "0001_giant_george_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787646422373,
+      "tag": "0002_remarkable_lionheart",
+      "breakpoints": true
     }
   ]
 }
