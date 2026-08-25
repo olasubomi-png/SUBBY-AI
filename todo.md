@@ -104,12 +104,12 @@
 - [x] Add explicit multi-file diff review state with per-file approval visibility and no Project Vault exposure.
 - [x] Implement multi-file proposal review and explicit GitHub PR/commit approval actions in the workspace.
 - [x] Add regression tests and verify the review flow on mobile and desktop before publishing.
-- [ ] Save and publish a checkpoint for the multi-file review workflow.
+- [x] Save and publish a checkpoint for the multi-file review workflow.
 - [x] Audit current single-file proposal and GitHub write contracts for a safe multi-file review extension.
 - [x] Add explicit multi-file diff review state with per-file approval visibility and no Project Vault exposure.
 - [x] Implement multi-file proposal review and explicit GitHub PR/commit approval actions in the workspace.
 - [x] Add regression tests and verify the review flow on mobile and desktop before publishing.
-- [ ] Save and publish a checkpoint for the multi-file review workflow.
+- [x] Save and publish a checkpoint for the multi-file review workflow.
 - [x] Add a real batched GitHub pull-request approval flow that accepts multiple reviewed file changes and applies them together safely.
 - [x] Add a real batched GitHub branch-commit approval flow that writes multiple reviewed file changes together safely.
 - [x] Add regression coverage for multi-file queue behavior, duplicate-path replacement, clear-review behavior, and approval payload generation.
