@@ -143,3 +143,10 @@ export async function getProjectRepository(userId: number, projectId: number) {
   const [repository] = await db.select().from(githubRepositories).where(and(eq(githubRepositories.userId, userId), eq(githubRepositories.projectId, projectId))).limit(1);
   return repository ?? null;
 }
+
+export async function getUserRepository(userId: number, repositoryId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Workspace storage is currently unavailable.");
+  const [repository] = await db.select().from(githubRepositories).where(and(eq(githubRepositories.userId, userId), eq(githubRepositories.id, repositoryId))).limit(1);
+  return repository ?? null;
+}

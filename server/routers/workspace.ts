@@ -7,7 +7,7 @@ import { generateImage } from "../_core/imageGeneration";
 import { encryptProjectSecret, isProjectVaultConfigured } from "../projectSecrets";
 import { buildSafeChatContext, buildSubbySystemPrompt } from "../chatContext";
 import { selectRepositoryBranch } from "../chatRepository";
-import { listGitHubRepositoryBranches } from "../github";
+import { getUserRepository, listGitHubRepositoryBranches } from "../github";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const projectStatus = z.enum(["planning", "building", "review", "paused"]);
@@ -150,14 +150,16 @@ export const workspaceRouter = router({
       const [session] = await db.select().from(chatSessions).where(and(eq(chatSessions.id, input.sessionId), eq(chatSessions.userId, ctx.user.id))).limit(1);
       if (!session) throw new Error("Conversation not found.");
       await requireProjectAccess(ctx.user.id, input.projectId);
-      const [repository] = await db.select().from(githubRepositories).where(and(eq(githubRepositories.userId, ctx.user.id), eq(githubRepositories.projectId, input.projectId), eq(githubRepositories.fullName, input.fullName))).limit(1);
-      if (!repository) throw new Error("Link this repository to the selected project before attaching it to chat.");
-      const branches = await listGitHubRepositoryBranches(ctx.user.id, repository.fullName);
-      const branch = selectRepositoryBranch(branches, input.branch, repository.defaultBranch);
-      if (branch !== input.branch) throw new Error("The selected branch no longer exists on GitHub. Refresh the repository branches and select an available branch.");
-      await db.update(chatSessions).set({ projectId: input.projectId, repositoryId: repository.id, repositoryBranch: branch }).where(eq(chatSessions.id, input.sessionId));
-      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "chat", title: "Attached repository to chat", detail: `${repository.fullName} · ${branch}` });
-      return { repositoryId: repository.id, fullName: repository.fullName, branch };
+      const [repository] = await db.select().from(githubRepositories).where(and(eq(githubRepositories.userId, ctx.user.id), eq(githubRepositories.fullName, input.fullName))).limit(1);
+      if (!repository) throw new Error("Select this repository from the GitHub workspace once before attaching it to chat.");
+      const userRepository = await getUserRepository(ctx.user.id, repository.id);
+      if (!userRepository) throw new Error("This connected repository is no longer available to your account.");
+      const branches = await listGitHubRepositoryBranches(ctx.user.id, userRepository.fullName);
+      const selectedBranch = selectRepositoryBranch(branches, input.branch, userRepository.defaultBranch);
+      if (selectedBranch !== input.branch) throw new Error("The selected branch no longer exists on GitHub. Refresh the repository branches and select an available branch.");
+      await db.update(chatSessions).set({ projectId: input.projectId, repositoryId: userRepository.id, repositoryBranch: selectedBranch }).where(eq(chatSessions.id, input.sessionId));
+      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "chat", title: "Attached repository to chat", detail: `${userRepository.fullName} · ${selectedBranch}` });
+      return { repositoryId: userRepository.id, fullName: userRepository.fullName, branch: selectedBranch };
     }),
 
   chatHistory: protectedProcedure
