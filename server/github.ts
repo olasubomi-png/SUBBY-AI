@@ -69,7 +69,7 @@ export async function githubAccessToken(userId: number) {
   return decryptProjectSecret({ ciphertext: connection.tokenCiphertext, iv: connection.tokenIv, authTag: connection.tokenAuthTag });
 }
 
-export async function githubRequest<T>(userId: number, config: { method?: "GET" | "POST" | "PUT"; url: string; data?: unknown }) {
+export async function githubRequest<T>(userId: number, config: { method?: "GET" | "POST" | "PUT" | "PATCH"; url: string; data?: unknown }) {
   const token = await githubAccessToken(userId);
   try {
     const response = await githubApi.request<T>({ method: config.method ?? "GET", url: config.url, data: config.data, headers: { Authorization: `Bearer ${token}` } });

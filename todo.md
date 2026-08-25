@@ -100,3 +100,17 @@
 - [x] Add regression coverage and validate the merged result with TypeScript checks, 31 Vitest tests, and responsive mobile/desktop verification; the production bundle remains limited by sandbox memory during chunk rendering.
 - [x] Publish a checkpoint documenting reused functionality, applied fixes, and explicitly unavailable capabilities.
 - [x] Investigate Vite production-build memory pressure; confirm optional compressed-size reporting was not the failing step and revert the ineffective configuration change.
+- [x] Audit current single-file proposal and GitHub write contracts for a safe multi-file review extension.
+- [x] Add explicit multi-file diff review state with per-file approval visibility and no Project Vault exposure.
+- [x] Implement multi-file proposal review and explicit GitHub PR/commit approval actions in the workspace.
+- [x] Add regression tests and verify the review flow on mobile and desktop before publishing.
+- [ ] Save and publish a checkpoint for the multi-file review workflow.
+- [x] Audit current single-file proposal and GitHub write contracts for a safe multi-file review extension.
+- [x] Add explicit multi-file diff review state with per-file approval visibility and no Project Vault exposure.
+- [x] Implement multi-file proposal review and explicit GitHub PR/commit approval actions in the workspace.
+- [x] Add regression tests and verify the review flow on mobile and desktop before publishing.
+- [ ] Save and publish a checkpoint for the multi-file review workflow.
+- [x] Add a real batched GitHub pull-request approval flow that accepts multiple reviewed file changes and applies them together safely.
+- [x] Add a real batched GitHub branch-commit approval flow that writes multiple reviewed file changes together safely.
+- [x] Add regression coverage for multi-file queue behavior, duplicate-path replacement, clear-review behavior, and approval payload generation.
+- [x] Add regression coverage for multi-file review queue state transitions, including selection and clear-review reset before any GitHub write.

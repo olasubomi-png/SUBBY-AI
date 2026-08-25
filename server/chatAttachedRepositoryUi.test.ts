@@ -37,6 +37,8 @@ vi.mock("../client/src/lib/trpc", () => ({
       dispatchWorkflow: { useMutation: mocks.mutation },
       createPullRequest: { useMutation: mocks.mutation },
       commitApprovedChange: { useMutation: mocks.mutation },
+      createPullRequestBatch: { useMutation: mocks.mutation },
+      commitApprovedChanges: { useMutation: mocks.mutation },
     },
   },
 }));

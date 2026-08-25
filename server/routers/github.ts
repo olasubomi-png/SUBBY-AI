@@ -7,10 +7,25 @@ import { isGitHubOAuthConfigured } from "../githubConfig";
 import { supportsManualDispatch } from "../githubWorkflow";
 import { analyzeRepositoryFiles, intelligenceSummary } from "../repositoryIntelligence";
 import { invokeLLM, listLLMModels } from "../_core/llm";
+import { buildGitTreeBlobs, combinedCommitMessage, combinedSummary, normalizeReviewedChanges, type ReviewedFileChange } from "../githubChangeReview";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const projectInput = z.object({ projectId: z.number().int().positive() });
 const repositoryPath = (fullName: string) => fullName.split("/").map(encodeURIComponent).join("/");
+const reviewedChangeInput = z.object({
+  path: z.string().trim().min(1).max(500).regex(/^(?!.*\.\.(?:\/|$))(?!\.git(?:\/|$))[A-Za-z0-9_./@+\- ]+$/, "Use a relative repository path without '..' or '.git'."),
+  content: z.string().max(100_000),
+  commitMessage: z.string().trim().min(4).max(200),
+  summary: z.string().trim().min(4).max(1000),
+  baseSha: z.string().trim().min(1).max(200),
+});
+const batchedApprovalInput = z.object({
+  projectId: z.number().int().positive(),
+  repositoryId: z.number().int().positive().optional(),
+  branch: z.string().trim().min(1).max(255),
+  changes: z.array(reviewedChangeInput).min(1).max(8),
+  confirmed: z.literal(true),
+});
 
 async function repositoryText(userId: number, projectId: number, path: string, branch?: string, repositoryId?: number) {
   const repository = repositoryId ? await getUserRepository(userId, repositoryId) : await getProjectRepository(userId, projectId);
@@ -32,6 +47,34 @@ async function recordGitHubActivity(userId: number, projectId: number, title: st
   const db = await getDb();
   if (!db) return;
   await db.insert(activityEvents).values({ userId, projectId, kind: "workspace", title, detail });
+}
+
+async function prepareReviewedChanges(userId: number, input: { projectId: number; repositoryId?: number; branch: string; changes: ReviewedFileChange[] }) {
+  const repository = input.repositoryId ? await getUserRepository(userId, input.repositoryId) : await getProjectRepository(userId, input.projectId);
+  if (!repository) throw new Error("Select a repository for this project first.");
+  const changes = normalizeReviewedChanges(input.changes);
+  if (changes.length !== input.changes.length) throw new Error("Each reviewed change must have a unique, safe repository path.");
+  for (const change of changes) {
+    const current = await repositoryText(userId, input.projectId, change.path, input.branch, input.repositoryId);
+    if (!current.sha || current.sha !== change.baseSha) throw new Error(`The reviewed file ${change.path} changed on GitHub after it was proposed. Inspect it again before approving.`);
+  }
+  return { repository, changes };
+}
+
+async function commitReviewedChanges(userId: number, repository: { fullName: string; defaultBranch: string }, branch: string, changes: ReviewedFileChange[], message: string, createBranch = false) {
+  const repositoryUrl = repositoryPath(repository.fullName);
+  const baseRef = await githubRequest<{ object: { sha: string } }>(userId, { url: `/repos/${repositoryUrl}/git/ref/heads/${encodeURIComponent(branch)}` });
+  const baseCommit = await githubRequest<{ tree: { sha: string } }>(userId, { url: `/repos/${repositoryUrl}/git/commits/${baseRef.object.sha}` });
+  const blobShas: string[] = [];
+  for (const change of changes) {
+    const blob = await githubRequest<{ sha: string }>(userId, { method: "POST", url: `/repos/${repositoryUrl}/git/blobs`, data: { content: change.content, encoding: "utf-8" } });
+    blobShas.push(blob.sha);
+  }
+  const tree = await githubRequest<{ sha: string }>(userId, { method: "POST", url: `/repos/${repositoryUrl}/git/trees`, data: { base_tree: baseCommit.tree.sha, tree: buildGitTreeBlobs(changes, blobShas) } });
+  const commit = await githubRequest<{ sha: string }>(userId, { method: "POST", url: `/repos/${repositoryUrl}/git/commits`, data: { message, tree: tree.sha, parents: [baseRef.object.sha] } });
+  const targetBranch = createBranch ? `subby/fix-${Date.now().toString(36)}` : branch;
+  await githubRequest(userId, { method: createBranch ? "POST" : "PATCH", url: createBranch ? `/repos/${repositoryUrl}/git/refs` : `/repos/${repositoryUrl}/git/refs/heads/${encodeURIComponent(targetBranch)}`, data: createBranch ? { ref: `refs/heads/${targetBranch}`, sha: commit.sha } : { sha: commit.sha, force: false } });
+  return { branch: targetBranch, commitSha: commit.sha };
 }
 
 export const githubRouter = router({
@@ -141,7 +184,7 @@ export const githubRouter = router({
       if (typeof content !== "string") throw new Error("SUBBY could not produce a structured code proposal.");
       const proposal = JSON.parse(content) as { summary: string; commitMessage: string; content: string };
       await recordGitHubActivity(ctx.user.id, input.projectId, "AI prepared code proposal", input.path);
-      return { ...proposal, path: input.path };
+      return { ...proposal, path: input.path, baseSha: file.sha };
     }),
 
   listWorkflows: protectedProcedure
@@ -205,6 +248,27 @@ export const githubRouter = router({
       return { success: true, branch: input.branch };
     }),
 
+  createPullRequestBatch: protectedProcedure
+    .input(batchedApprovalInput)
+    .mutation(async ({ ctx, input }) => {
+      await requireProject(ctx.user.id, input.projectId);
+      const prepared = await prepareReviewedChanges(ctx.user.id, input);
+      const message = combinedCommitMessage(prepared.changes);
+      const commit = await commitReviewedChanges(ctx.user.id, prepared.repository, input.branch, prepared.changes, message, true);
+      const pull = await githubRequest<{ html_url: string; number: number }>(ctx.user.id, { method: "POST", url: `/repos/${repositoryPath(prepared.repository.fullName)}/pulls`, data: { title: message, head: commit.branch, base: input.branch, body: `## SUBBY multi-file proposal\n\n${combinedSummary(prepared.changes)}\n\nCreated only after explicit user approval in SUBBY.\n\nFiles: ${prepared.changes.length}` } });
+      await recordGitHubActivity(ctx.user.id, input.projectId, "Created multi-file GitHub pull request", `#${pull.number} · ${prepared.repository.fullName} · ${prepared.changes.length} files`);
+      return { number: pull.number, url: pull.html_url, branch: commit.branch, files: prepared.changes.map((change) => change.path) };
+    }),
+  commitApprovedChanges: protectedProcedure
+    .input(batchedApprovalInput)
+    .mutation(async ({ ctx, input }) => {
+      await requireProject(ctx.user.id, input.projectId);
+      const prepared = await prepareReviewedChanges(ctx.user.id, input);
+      const message = combinedCommitMessage(prepared.changes);
+      const commit = await commitReviewedChanges(ctx.user.id, prepared.repository, input.branch, prepared.changes, message, false);
+      await recordGitHubActivity(ctx.user.id, input.projectId, "Committed approved SUBBY changes", `${prepared.repository.fullName} · ${input.branch} · ${prepared.changes.length} files`);
+      return { success: true, branch: commit.branch, commitSha: commit.commitSha, files: prepared.changes.map((change) => change.path) };
+    }),
   operationHistory: protectedProcedure
     .input(projectInput)
     .query(async ({ ctx, input }) => {
