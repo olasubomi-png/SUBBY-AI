@@ -87,4 +87,7 @@
 - [x] Preserve full message readability and scrolling while keeping Agent/Plan controls and the Workspace ledger accessible.
 - [x] Run regression checks, visually verify phone and desktop Chat, and publish the layout correction.
 - [x] Visually verify the final post-fix Chat layout at desktop width after the mobile full-width and composer CSS changes.
-- [ ] Save and publish a new checkpoint for the mobile Chat width, composer, and readability correction, then record the new release version.
+- [x] Save and publish a new checkpoint for the mobile Chat width, composer, and readability correction, then record the new release version (3109d499).
+- [x] Anchor the Agent/Plan selector and message composer at the bottom of the mobile Chat viewport.
+- [x] Keep only the conversation history scrollable above the bottom composer so it cannot cover messages.
+- [x] Verify the bottom-anchored layout at phone and desktop sizes, run tests, and publish the correction.
