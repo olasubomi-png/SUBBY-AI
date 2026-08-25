@@ -76,6 +76,10 @@ export async function githubRequest<T>(userId: number, config: { method?: "GET" 
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) throw new Error("Your GitHub connection is no longer valid. Please reconnect.");
+    if (axios.isAxiosError(error) && error.response?.status === 422) {
+      const data = error.response.data as { message?: string } | undefined;
+      throw new Error(data?.message ? `GitHub rejected this action: ${data.message}` : "GitHub rejected this action. The workflow may not allow manual dispatch.");
+    }
     throw error;
   }
 }

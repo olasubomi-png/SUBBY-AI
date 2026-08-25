@@ -26,8 +26,11 @@
 - [x] Improve the workspace with repository context, operation history, and clear status/error handling.
 - [x] Add security-focused tests, complete validation, and save a checkpoint for the secure repository workspace upgrade.
 - [x] Add the Project Vault interface and encrypted-secret readiness checks while awaiting the encryption key.
-- [ ] Activate GitHub OAuth only after SUBBY is published and the OAuth callback URL plus credentials are configured.
+- [x] Activate GitHub OAuth only after SUBBY is published and the OAuth callback URL plus credentials are configured.
 - [x] Add persisted GitHub operation history and show connection, inspection, workflow, and pull-request outcomes in the workspace.
 - [x] Persist GitHub connection and disconnection outcomes in the operation history, including callback feedback.
 - [x] Persist GitHub OAuth callback failures and display success or failure feedback after redirect.
 - [x] Save a final checkpoint for the secure GitHub and Project Vault upgrade.
+- [x] Capture the GitHub Actions workflow-dispatch validation response and identify its required inputs.
+- [x] Fix workflow dispatch and surface an actionable GitHub error when a workflow cannot be run manually.
+- [x] Add regression coverage, validate the workflow path, and checkpoint the GitHub Actions fix.

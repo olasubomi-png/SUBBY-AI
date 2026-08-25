@@ -4,6 +4,7 @@ import { activityEvents, githubConnections, githubRepositories, projects } from 
 import { getDb } from "../db";
 import { beginGitHubConnection, getGitHubConnection, getProjectRepository, githubRequest, type GithubRepository } from "../github";
 import { isGitHubOAuthConfigured } from "../githubConfig";
+import { supportsManualDispatch } from "../githubWorkflow";
 import { invokeLLM, listLLMModels } from "../_core/llm";
 import { protectedProcedure, router } from "../_core/trpc";
 
@@ -119,7 +120,15 @@ export const githubRouter = router({
       const repository = await getProjectRepository(ctx.user.id, input.projectId);
       if (!repository) return [];
       const data = await githubRequest<{ workflows: { id: number; name: string; path: string; state: string }[] }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/actions/workflows?per_page=50` });
-      return data.workflows.map((workflow) => ({ id: workflow.id, name: workflow.name, path: workflow.path, state: workflow.state }));
+      return Promise.all(data.workflows.slice(0, 50).map(async (workflow) => {
+        try {
+          const source = await githubRequest<{ content?: string; encoding?: string }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/contents/${workflow.path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(repository.defaultBranch)}` });
+          const yaml = source.encoding === "base64" && source.content ? Buffer.from(source.content.replace(/\n/g, ""), "base64").toString("utf8") : "";
+          return { id: workflow.id, name: workflow.name, path: workflow.path, state: workflow.state, dispatchable: supportsManualDispatch(yaml) };
+        } catch {
+          return { id: workflow.id, name: workflow.name, path: workflow.path, state: workflow.state, dispatchable: false };
+        }
+      }));
     }),
 
   dispatchWorkflow: protectedProcedure
@@ -128,7 +137,13 @@ export const githubRouter = router({
       await requireProject(ctx.user.id, input.projectId);
       const repository = await getProjectRepository(ctx.user.id, input.projectId);
       if (!repository) throw new Error("Select a repository for this project first.");
-      await githubRequest(ctx.user.id, { method: "POST", url: `/repos/${repositoryPath(repository.fullName)}/actions/workflows/${input.workflowId}/dispatches`, data: { ref: repository.defaultBranch } });
+      try {
+        await githubRequest(ctx.user.id, { method: "POST", url: `/repos/${repositoryPath(repository.fullName)}/actions/workflows/${input.workflowId}/dispatches`, data: { ref: repository.defaultBranch } });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Workflow dispatch failed.";
+        if (message.includes("does not have 'workflow_dispatch'")) throw new Error("This workflow cannot be run manually. Add a workflow_dispatch trigger to its GitHub Actions YAML file, commit it, then retry.");
+        throw error;
+      }
       await recordGitHubActivity(ctx.user.id, input.projectId, "Dispatched GitHub Actions workflow", repository.fullName);
       return { success: true };
     }),
