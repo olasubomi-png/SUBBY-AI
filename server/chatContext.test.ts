@@ -14,6 +14,19 @@ describe("buildSafeChatContext", () => {
     expect(context).not.toContain("DATABASE_PASSWORD");
   });
 
+  it("separates Plan mode from Agent mode without weakening safety boundaries", () => {
+    const safeContext = buildSafeChatContext({ name: "Vegas", description: "Game backend", status: "building" }, { fullName: "owner/game", defaultBranch: "main" });
+    const planPrompt = buildSubbySystemPrompt(safeContext, "plan");
+    const agentPrompt = buildSubbySystemPrompt(safeContext, "agent");
+
+    expect(planPrompt).toContain("You are in Plan mode");
+    expect(planPrompt).toContain("Do not present planned work as completed");
+    expect(agentPrompt).toContain("You are in Agent mode");
+    expect(agentPrompt).toContain("Never claim arbitrary shell execution");
+    expect(planPrompt).not.toContain("DATABASE_PASSWORD");
+    expect(agentPrompt).not.toContain("DATABASE_PASSWORD");
+  });
+
   it("passes only safe session context into the AI system prompt boundary", () => {
     const safeContext = buildSafeChatContext(
       { name: "Vegas", description: "Game backend", status: "building" },

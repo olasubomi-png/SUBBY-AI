@@ -2,6 +2,7 @@ import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Activity,
+  BookOpen,
   Bot,
   Boxes,
   ChevronRight,
@@ -13,6 +14,8 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageSquare,
+  Search,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -20,6 +23,7 @@ import {
   TerminalSquare,
 } from "lucide-react";
 import { useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { Button } from "./ui/button";
 
@@ -30,6 +34,12 @@ const primaryNavigation = [
   { label: "Overview", path: "/overview", icon: LayoutDashboard },
   { label: "Projects", path: "/projects", icon: Boxes },
   { label: "Agent tasks", path: "/agents", icon: Activity },
+];
+
+const referenceNavigation = [
+  { label: "Chats", path: "/", icon: MessageSquare },
+  { label: "Library", path: "/media", icon: BookOpen },
+  { label: "Sandbox", path: "/terminal", icon: TerminalSquare },
 ];
 
 const workspaceNavigation = [
@@ -44,7 +54,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { loading, user, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("drawer") === "1");
+  const [drawerSearch, setDrawerSearch] = useState("");
+  const createDrawerChat = trpc.workspace.createChatSession.useMutation({ onSuccess: (session) => navigate(`/chat?session=${session.id}`) });
 
   if (loading) {
     return (
@@ -91,16 +103,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
         </div>
 
+        {!collapsed && <div className="mobile-drawer-tools"><button onClick={() => createDrawerChat.mutate({ projectId: null })} disabled={createDrawerChat.isPending} className="mobile-drawer-new-chat"><Plus className="size-4" /> {createDrawerChat.isPending ? "Creating…" : "New chat"}</button><label className="mobile-drawer-search"><Search className="size-4" /><input value={drawerSearch} onChange={(event) => setDrawerSearch(event.target.value)} placeholder="Search workspace…" aria-label="Search workspace" /></label></div>}
+
+        {!collapsed && <div className="mobile-reference-links">{referenceNavigation.filter((item) => !drawerSearch.trim() || item.label.toLowerCase().includes(drawerSearch.toLowerCase())).map((item) => <button key={`quick-${item.path}`} onClick={() => navigate(item.path)} className={`subby-nav-item ${isActive(item.path) ? "active" : ""}`}><item.icon className="size-[17px]" /><span>{item.label}</span></button>)}</div>}
         <nav className="subby-navigation">
           {!collapsed && <p className="nav-label">Build</p>}
-          {primaryNavigation.map((item) => (
+          {primaryNavigation.filter((item) => !drawerSearch.trim() || item.label.toLowerCase().includes(drawerSearch.toLowerCase())).map((item) => (
             <button key={item.path} onClick={() => navigate(item.path)} className={`subby-nav-item ${isActive(item.path) ? "active" : ""}`} aria-current={isActive(item.path) ? "page" : undefined}>
               <item.icon className="size-[17px]" />
               {!collapsed && <span>{item.label}</span>}
             </button>
           ))}
           {!collapsed && <p className="nav-label mt-6">Workspace</p>}
-          {workspaceNavigation.map((item) => (
+          {workspaceNavigation.filter((item) => !drawerSearch.trim() || item.label.toLowerCase().includes(drawerSearch.toLowerCase())).map((item) => (
             <button key={item.path} onClick={() => navigate(item.path)} className={`subby-nav-item ${isActive(item.path) ? "active" : ""}`} aria-current={isActive(item.path) ? "page" : undefined}>
               <item.icon className="size-[17px]" />
               {!collapsed && <span>{item.label}</span>}

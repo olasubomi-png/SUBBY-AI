@@ -75,4 +75,10 @@
 - [x] Ensure every chat can use the connected GitHub account when the user explicitly attaches a repository, then inspect it and ask what to do next.
 - [x] Run tests, visually validate desktop/mobile chat and attachment flows, and publish the revised workspace.
 - [x] Re-verify the restored explicit branch selector after repository choice and preserve the selected branch through attachment.
-- [ ] Save and publish a new checkpoint after the repository-first and dashboard-history revisions; record the release version.
+- [x] Save and publish a new checkpoint after the repository-first and dashboard-history revisions; record the release version (13610713).
+- [x] Adapt the mobile workspace navigation into a focused SUBBY drawer with New chat, Chats, Library, Sandbox, Media, GitHub, and Project Vault destinations.
+- [x] Add clear Agent mode and Plan mode controls to Chat with distinct safe behavior and visible selected state.
+- [x] Refine the mobile composer to match the reference’s focused input, attachment, secure Vault, and send/loading affordances without hiding message content.
+- [x] Improve in-chat workspace activity cards so repository inspection, diagnosis, proposals, tests, and approved writes read as a clear work ledger.
+- [x] Add regression coverage, visually validate the reference-inspired mobile and desktop flow, and publish the update.
+- [ ] Save and publish a new checkpoint for the reference-inspired mobile drawer, Agent/Plan chat mode, composer, and Workspace activity-card update, then record the new release version.

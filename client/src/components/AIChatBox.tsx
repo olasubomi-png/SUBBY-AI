@@ -75,6 +75,10 @@ export type AIChatBoxProps = {
 
   /** Visible work ledger for active and completed SUBBY actions. */
   activityItems?: { id: string | number; title: string; detail?: string; status: "working" | "complete" | "failed" }[];
+
+  /** Functional conversation mode switch. */
+  mode?: "agent" | "plan";
+  onModeChange?: (mode: "agent" | "plan") => void;
 };
 
 /**
@@ -141,6 +145,8 @@ export function AIChatBox({
   onOpenVault,
   draft,
   activityItems = [],
+  mode = "agent",
+  onModeChange,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -237,7 +243,7 @@ export function AIChatBox({
         ) : (
           <ScrollArea className="h-full min-w-0">
             <div className="flex flex-col space-y-4 p-4">
-              {activityItems.length > 0 && <div className="chat-activity-feed" aria-label="SUBBY work activity">{activityItems.slice(0, 8).map((item) => <div className={`chat-activity-item chat-activity-${item.status}`} key={item.id}><span>{item.status === "working" ? <Loader2 className="size-3.5 animate-spin" /> : item.status === "failed" ? "!" : "✓"}</span><div><strong>{item.title}</strong>{item.detail && <small>{item.detail}</small>}</div></div>)}</div>}
+              {activityItems.length > 0 && <details className="chat-activity-feed" open aria-label="SUBBY work activity"><summary><span className="chat-activity-summary-icon"><Sparkles className="size-3.5" /></span><strong>Workspace</strong><small>{activityItems.filter((item) => item.status === "working").length ? "Working now" : `${Math.min(activityItems.length, 8)} recent actions`}</small></summary><div className="chat-activity-list">{activityItems.slice(0, 8).map((item) => <div className={`chat-activity-item chat-activity-${item.status}`} key={item.id}><span>{item.status === "working" ? <Loader2 className="size-3.5 animate-spin" /> : item.status === "failed" ? "!" : "✓"}</span><div><strong>{item.title}</strong>{item.detail && <small>{item.detail}</small>}</div></div>)}</div></details>}
               {displayMessages.map((message, index) => {
                 const generatedMedia = message.role === "assistant" ? extractGeneratedMedia(message.content) : null;
                 return (
@@ -305,9 +311,10 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="relative flex gap-2 border-t bg-background/50 p-4 items-end"
+        className="relative flex flex-col gap-2 border-t bg-background/50 p-4"
       >
-        {composerActions}
+        {onModeChange && <div className="composer-mode-switch" role="group" aria-label="Chat mode"><button type="button" onClick={() => onModeChange("agent")} className={mode === "agent" ? "active" : ""}><span>Agent mode</span><small>Work through approved actions</small></button><button type="button" onClick={() => onModeChange("plan")} className={mode === "plan" ? "active" : ""}><span>Plan mode</span><small>Plan before any action</small></button></div>}
+        <div className="flex min-w-0 items-end gap-2">{composerActions}
         {onOpenVault && <button type="button" onClick={onOpenVault} className="composer-vault-button" aria-label="Open Project Vault to store a secret"><KeyRound className="size-4" /></button>}
         <Textarea
           ref={textareaRef}
@@ -329,7 +336,7 @@ export function AIChatBox({
           ) : (
             <Send className="size-4" />
           )}
-        </Button>
+        </Button></div>
       </form>
     </div>
   );

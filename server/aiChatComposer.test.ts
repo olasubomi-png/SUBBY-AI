@@ -15,8 +15,13 @@ describe("AIChatBox composer actions", () => {
       onOpenVault: vi.fn(),
       activityItems: [{ id: "inspect", title: "Inspecting repository structure", detail: "Reading the selected branch", status: "working" }],
       height: "400px",
+      mode: "agent",
+      onModeChange: vi.fn(),
     }));
 
+    expect(html).toContain("Agent mode");
+    expect(html).toContain("Plan mode");
+    expect(html).toContain("Work through approved actions");
     expect(html).toContain("Add to chat");
     expect(html).toContain("Open Project Vault to store a secret");
     expect(html).toContain("https://media.example/generated.png");

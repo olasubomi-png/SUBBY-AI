@@ -16,6 +16,7 @@ const chatInput = z.object({
   sessionId: z.number().int().positive().optional(),
   projectId: z.number().int().positive().nullable().optional(),
   content: z.string().trim().min(1).max(8000),
+  mode: z.enum(["agent", "plan"]).default("agent"),
 });
 const filePath = z.string().trim().min(1).max(240).regex(/^(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9_./@+\- ]+$/, "Use a relative path without '..'.");
 const fileInput = z.object({
@@ -209,7 +210,7 @@ export const workspaceRouter = router({
         messages: [
           {
             role: "system",
-            content: buildSubbySystemPrompt(safeContext),
+            content: buildSubbySystemPrompt(safeContext, input.mode),
           },
           ...chronological.map((message) => ({ role: message.role as "user" | "assistant", content: message.content })),
           { role: "user", content: input.content },
