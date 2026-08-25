@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const mocks = vi.hoisted(() => ({ getDb: vi.fn(), updateSet: vi.fn(), listBranches: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getDb: vi.fn(), updateSet: vi.fn(), listBranches: vi.fn(), getUserRepository: vi.fn() }));
 vi.mock("./db", () => ({ getDb: mocks.getDb }));
-vi.mock("./github", () => ({ listGitHubRepositoryBranches: mocks.listBranches }));
+vi.mock("./github", () => ({ listGitHubRepositoryBranches: mocks.listBranches, getUserRepository: mocks.getUserRepository }));
 
 import { appRouter } from "./routers";
 
@@ -26,12 +26,20 @@ describe("workspace.attachRepositoryToChat", () => {
     mocks.getDb.mockResolvedValue(db);
     mocks.updateSet.mockReset();
     mocks.listBranches.mockResolvedValue(["main", "feature/chat"]);
+    mocks.getUserRepository.mockResolvedValue({ id: 31, userId: 5, projectId: 99, fullName: "owner/game", defaultBranch: "main" });
   });
 
   it("stores the selected repository and branch on the owned conversation session", async () => {
     const result = await appRouter.createCaller(context()).workspace.attachRepositoryToChat({ sessionId: 14, projectId: 8, fullName: "owner/game", branch: "feature/chat" });
 
     expect(result).toEqual({ repositoryId: 31, fullName: "owner/game", branch: "feature/chat" });
+    expect(mocks.updateSet).toHaveBeenCalledWith(expect.objectContaining({ projectId: 8, repositoryId: 31, repositoryBranch: "feature/chat" }));
+  });
+
+  it("reuses a connected repository even when it is linked to another project", async () => {
+    const result = await appRouter.createCaller(context()).workspace.attachRepositoryToChat({ sessionId: 14, projectId: 8, fullName: "owner/game", branch: "feature/chat" });
+
+    expect(result.repositoryId).toBe(31);
     expect(mocks.updateSet).toHaveBeenCalledWith(expect.objectContaining({ projectId: 8, repositoryId: 31, repositoryBranch: "feature/chat" }));
   });
 

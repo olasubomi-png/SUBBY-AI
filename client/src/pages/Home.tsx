@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { Activity, ArrowRight, Bot, Boxes, CheckCircle2, CircleDashed, Plus, Sparkles } from "lucide-react";
+import { Activity, ArrowRight, Bot, Boxes, CheckCircle2, CircleDashed, Clock3, MessageSquarePlus, Plus, Sparkles } from "lucide-react";
 import { useLocation } from "wouter";
 
 const statusStyles = {
@@ -20,10 +20,13 @@ function relativeTime(timestamp: number) {
 export default function Home() {
   const [, setLocation] = useLocation();
   const { data, isLoading } = trpc.workspace.overview.useQuery();
+  const sessions = trpc.workspace.listChatSessions.useQuery();
+  const createChatSession = trpc.workspace.createChatSession.useMutation({ onSuccess: (session) => setLocation(`/chat?session=${session.id}`) });
   const summary = data?.summary ?? { totalProjects: 0, activeProjects: 0, inProgressTasks: 0, completedTasks: 0 };
   const projects = data?.projects ?? [];
   const tasks = data?.tasks ?? [];
   const activity = data?.activity ?? [];
+  const startNewChat = () => createChatSession.mutate({ projectId: null });
 
   return (
     <section className="space-y-7">
@@ -38,6 +41,11 @@ export default function Home() {
         <article className="metric-card"><div className="metric-icon green"><CheckCircle2 className="size-5" /></div><div><p>Completed</p><strong>{summary.completedTasks}</strong><span>verified task{summary.completedTasks === 1 ? "" : "s"}</span></div></article>
         <article className="metric-card metric-card-spotlight"><div className="metric-icon glow"><Sparkles className="size-5" /></div><div><p>SUBBY co-developer</p><strong>Ready</strong><span>Ask for a plan or implementation</span></div><button onClick={() => setLocation("/chat")} aria-label="Open SUBBY co-developer"><ArrowRight className="size-4" /></button></article>
       </div>
+
+      <section className="subby-panel dashboard-conversations">
+        <div className="panel-heading"><div><p className="eyebrow">CHAT HISTORY</p><h2>Conversations</h2></div><button onClick={startNewChat} disabled={createChatSession.isPending} className="subby-primary-button"><MessageSquarePlus className="size-4" /> {createChatSession.isPending ? "Creating…" : "New chat"}</button></div>
+        {sessions.isLoading ? <div className="subby-empty">Loading conversations…</div> : sessions.data?.length ? <div className="dashboard-conversation-list">{sessions.data.slice(0, 8).map((session) => <button key={session.id} onClick={() => setLocation(`/chat?session=${session.id}`)} className="dashboard-conversation-row"><span className="dashboard-conversation-icon"><Sparkles className="size-3.5" /></span><span className="min-w-0 flex-1 text-left"><strong>{session.title}</strong><small>{session.projectId ? (projects.find((project) => project.id === session.projectId)?.name ?? "Project context") : "General workspace"}</small></span><time><Clock3 className="mr-1 inline size-3" />{relativeTime(session.updatedAt)}</time><ArrowRight className="size-4 text-slate-600" /></button>)}</div> : <EmptyPanel title="No conversations yet" detail="Start a chat with SUBBY and your sessions will be retained here." action="Open Chat" onClick={() => setLocation("/chat")} />}
+      </section>
 
       <div className="subby-dashboard-grid">
         <section className="subby-panel dashboard-projects">

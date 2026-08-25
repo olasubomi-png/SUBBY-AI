@@ -68,9 +68,11 @@
 - [x] Streamline repository attachment for users who already connected GitHub, then inspect the selected repository and invite the user to describe the desired change.
 - [x] Show visible, persistent action-progress cards in chat for repository inspection, workflow dispatch, proposal preparation, pull requests, commits, and media generation.
 - [x] Add regression coverage, validate the mobile and desktop flows, and publish the professional chat workflow update.
-- [ ] Simplify the GitHub attachment dialog to foreground only the connected-repository selector, with branch selection after repository choice.
-- [ ] Hide the attached-repository action panel from the main chat after a repository is attached while preserving repository context for chat actions.
-- [ ] Diagnose and fix the reported 409 error in repository attachment/session persistence, with regression coverage.
-- [ ] Move New chat and conversation history out of the cramped Chat canvas into the dashboard/Overview experience.
-- [ ] Ensure every chat can use the connected GitHub account when the user explicitly attaches a repository, then inspect it and ask what to do next.
-- [ ] Run tests, visually validate desktop/mobile chat and attachment flows, and publish the revised workspace.
+- [x] Simplify the GitHub attachment dialog to foreground only the connected-repository selector, with branch selection after repository choice.
+- [x] Hide the attached-repository action panel from the main chat after a repository is attached while preserving repository context for chat actions.
+- [x] Diagnose and fix the reported 409 error in repository attachment/session persistence, with regression coverage.
+- [x] Move New chat and conversation history out of the cramped Chat canvas into the dashboard/Overview experience.
+- [x] Ensure every chat can use the connected GitHub account when the user explicitly attaches a repository, then inspect it and ask what to do next.
+- [x] Run tests, visually validate desktop/mobile chat and attachment flows, and publish the revised workspace.
+- [x] Re-verify the restored explicit branch selector after repository choice and preserve the selected branch through attachment.
+- [ ] Save and publish a new checkpoint after the repository-first and dashboard-history revisions; record the release version.
