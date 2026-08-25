@@ -129,3 +129,7 @@
 - [x] Save and publish a checkpoint for Actions history, comments, side-by-side review, and resume-review entry points.
 - [x] Add an explicit Resume review affordance in the attached-repository panel for persisted open reviews.
 - [x] Add deterministic tests for Actions snapshot persistence/history mapping, inline comment contracts, side-by-side diff output, and resume-review visibility.
+- [ ] Inspect the authenticated GitHub target and local git state for the SUBBY-AI publication.
+- [ ] Verify no environment secrets or generated credentials are included in the GitHub commit.
+- [ ] Push the current SUBBY-AI source to the private `olasubomi-png/SUBBY-AI` repository.
+- [ ] Verify the remote main branch and report the GitHub repository URL.
