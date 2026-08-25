@@ -126,6 +126,6 @@
 - [x] Add inline review comments tied to proposal files and line locations.
 - [x] Add side-by-side diff mode and a resume-review entry point for persisted proposal reviews.
 - [x] Add migrations, regression tests, production validation, and responsive verification for the continuation slice.
-- [ ] Save and publish a checkpoint for Actions history, comments, side-by-side review, and resume-review entry points.
+- [x] Save and publish a checkpoint for Actions history, comments, side-by-side review, and resume-review entry points.
 - [x] Add an explicit Resume review affordance in the attached-repository panel for persisted open reviews.
 - [x] Add deterministic tests for Actions snapshot persistence/history mapping, inline comment contracts, side-by-side diff output, and resume-review visibility.
