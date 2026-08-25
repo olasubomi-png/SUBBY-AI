@@ -81,4 +81,10 @@
 - [x] Refine the mobile composer to match the reference’s focused input, attachment, secure Vault, and send/loading affordances without hiding message content.
 - [x] Improve in-chat workspace activity cards so repository inspection, diagnosis, proposals, tests, and approved writes read as a clear work ledger.
 - [x] Add regression coverage, visually validate the reference-inspired mobile and desktop flow, and publish the update.
-- [ ] Save and publish a new checkpoint for the reference-inspired mobile drawer, Agent/Plan chat mode, composer, and Workspace activity-card update, then record the new release version.
+- [x] Save and publish a new checkpoint for the reference-inspired mobile drawer, Agent/Plan chat mode, composer, and Workspace activity-card update, then record the new release version (7020bb2a).
+- [x] Make the mobile Chat conversation use the full viewport width like the reference instead of the narrow centered message column.
+- [x] Make the mobile composer input span the available width with controls kept in one readable row and no vertical squeeze.
+- [x] Preserve full message readability and scrolling while keeping Agent/Plan controls and the Workspace ledger accessible.
+- [x] Run regression checks, visually verify phone and desktop Chat, and publish the layout correction.
+- [x] Visually verify the final post-fix Chat layout at desktop width after the mobile full-width and composer CSS changes.
+- [ ] Save and publish a new checkpoint for the mobile Chat width, composer, and readability correction, then record the new release version.
