@@ -9,6 +9,7 @@ import { buildSafeChatContext, buildSubbySystemPrompt } from "../chatContext";
 import { selectRepositoryBranch } from "../chatRepository";
 import { getUserRepository, listGitHubRepositoryBranches } from "../github";
 import { protectedProcedure, router } from "../_core/trpc";
+import { modelProfiles, selectModel } from "../modelProfiles";
 
 const projectStatus = z.enum(["planning", "building", "review", "paused"]);
 const taskStatus = z.enum(["queued", "in_progress", "completed"]);
@@ -17,6 +18,7 @@ const chatInput = z.object({
   projectId: z.number().int().positive().nullable().optional(),
   content: z.string().trim().min(1).max(8000),
   mode: z.enum(["agent", "plan"]).default("agent"),
+  modelProfile: z.enum(modelProfiles).default("auto"),
 });
 const filePath = z.string().trim().min(1).max(240).regex(/^(?!.*(?:^|\/)\.\.(?:\/|$))[A-Za-z0-9_./@+\- ]+$/, "Use a relative path without '..'.");
 const fileInput = z.object({
@@ -204,7 +206,7 @@ export const workspaceRouter = router({
 
       await db.insert(chatMessages).values({ userId: ctx.user.id, sessionId, projectId: sessionProjectId, role: "user", content: input.content });
       const { data: models } = await listLLMModels();
-      const model = models.find((entry) => entry.id.startsWith("claude-"))?.id ?? models.find((entry) => entry.id.startsWith("gpt-"))?.id ?? models[0]?.id;
+      const model = selectModel(models, input.modelProfile);
       const response = await invokeLLM({
         model,
         messages: [

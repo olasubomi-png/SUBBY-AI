@@ -79,6 +79,10 @@ export type AIChatBoxProps = {
   /** Functional conversation mode switch. */
   mode?: "agent" | "plan";
   onModeChange?: (mode: "agent" | "plan") => void;
+
+  /** Provider-agnostic model routing profile. */
+  modelProfile?: "auto" | "quality" | "fast" | "economy";
+  onModelProfileChange?: (profile: "auto" | "quality" | "fast" | "economy") => void;
 };
 
 /**
@@ -147,6 +151,8 @@ export function AIChatBox({
   activityItems = [],
   mode = "agent",
   onModeChange,
+  modelProfile = "auto",
+  onModelProfileChange,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -313,7 +319,7 @@ export function AIChatBox({
         onSubmit={handleSubmit}
         className="relative flex flex-col gap-2 border-t bg-background/50 p-4"
       >
-        {onModeChange && <div className="composer-mode-switch" role="group" aria-label="Chat mode"><button type="button" onClick={() => onModeChange("agent")} className={mode === "agent" ? "active" : ""}><span>Agent mode</span><small>Work through approved actions</small></button><button type="button" onClick={() => onModeChange("plan")} className={mode === "plan" ? "active" : ""}><span>Plan mode</span><small>Plan before any action</small></button></div>}
+        {(onModeChange || onModelProfileChange) && <div className="composer-settings-row">{onModeChange && <div className="composer-mode-switch" role="group" aria-label="Chat mode"><button type="button" onClick={() => onModeChange("agent")} className={mode === "agent" ? "active" : ""}><span>Agent mode</span><small>Work through approved actions</small></button><button type="button" onClick={() => onModeChange("plan")} className={mode === "plan" ? "active" : ""}><span>Plan mode</span><small>Plan before any action</small></button></div>}{onModelProfileChange && <label className="composer-model-profile"><span>Model</span><select value={modelProfile ?? "auto"} onChange={(event) => onModelProfileChange(event.target.value as "auto" | "quality" | "fast" | "economy")} aria-label="Choose AI model profile"><option value="auto">Auto</option><option value="quality">Best quality</option><option value="fast">Fast</option><option value="economy">Economy</option></select></label>}</div>}
         <div className="flex min-w-0 items-end gap-2">{composerActions}
         {onOpenVault && <button type="button" onClick={onOpenVault} className="composer-vault-button" aria-label="Open Project Vault to store a secret"><KeyRound className="size-4" /></button>}
         <Textarea
