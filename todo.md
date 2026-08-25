@@ -19,3 +19,15 @@
 - [x] Add persisted records and protected procedures for repository plans, command drafts, deployment plans, and media briefs.
 - [x] Replace the Terminal, Deployments, Media, and GitHub placeholders with functional no-connector workspace pages.
 - [x] Add tests, validate responsive behavior, and save a checkpoint for the placeholder replacement work.
+- [x] Define secure GitHub connection, repository analysis, test, change-proposal, and explicit push-approval boundaries.
+- [x] Add encrypted per-project secret records that are unavailable to chat transcripts and never returned in plaintext after saving.
+- [x] Add GitHub OAuth connection, repository selection, and project repository binding.
+- [x] Add AI-assisted repository inspection, actionable change proposals, controlled test execution, and explicit push-back approval.
+- [x] Improve the workspace with repository context, operation history, and clear status/error handling.
+- [x] Add security-focused tests, complete validation, and save a checkpoint for the secure repository workspace upgrade.
+- [x] Add the Project Vault interface and encrypted-secret readiness checks while awaiting the encryption key.
+- [ ] Activate GitHub OAuth only after SUBBY is published and the OAuth callback URL plus credentials are configured.
+- [x] Add persisted GitHub operation history and show connection, inspection, workflow, and pull-request outcomes in the workspace.
+- [x] Persist GitHub connection and disconnection outcomes in the operation history, including callback feedback.
+- [x] Persist GitHub OAuth callback failures and display success or failure feedback after redirect.
+- [x] Save a final checkpoint for the secure GitHub and Project Vault upgrade.

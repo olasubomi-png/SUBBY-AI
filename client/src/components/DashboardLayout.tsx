@@ -113,7 +113,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Plus className="size-4" /> {!collapsed && <span>New project</span>}
           </button>
           <button onClick={() => navigate("/settings")} className={`subby-nav-item ${isActive("/settings") ? "active" : ""}`}>
-            <Settings className="size-[17px]" /> {!collapsed && <span>Settings</span>}
+            <Settings className="size-[17px]" /> {!collapsed && <span>Project vault</span>}
           </button>
           <div className="subby-user-row">
             <div className="subby-avatar" aria-hidden="true">{user.name?.slice(0, 1).toUpperCase() || <CircleUserRound className="size-4" />}</div>

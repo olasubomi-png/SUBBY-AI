@@ -106,5 +106,55 @@ export const mediaAssets = mysqlTable("mediaAssets", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const projectSecrets = mysqlTable("projectSecrets", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  ciphertext: text("ciphertext").notNull(),
+  iv: varchar("iv", { length: 64 }).notNull(),
+  authTag: varchar("authTag", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("projectSecrets_project_name_unique").on(table.projectId, table.name)]);
+
+export const githubConnections = mysqlTable("githubConnections", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  githubLogin: varchar("githubLogin", { length: 120 }).notNull(),
+  tokenCiphertext: text("tokenCiphertext").notNull(),
+  tokenIv: varchar("tokenIv", { length: 64 }).notNull(),
+  tokenAuthTag: varchar("tokenAuthTag", { length: 64 }).notNull(),
+  refreshCiphertext: text("refreshCiphertext"),
+  refreshIv: varchar("refreshIv", { length: 64 }),
+  refreshAuthTag: varchar("refreshAuthTag", { length: 64 }),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const githubOAuthStates = mysqlTable("githubOAuthStates", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  stateHash: varchar("stateHash", { length: 128 }).notNull().unique(),
+  codeVerifier: varchar("codeVerifier", { length: 160 }).notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const githubRepositories = mysqlTable("githubRepositories", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull().unique(),
+  connectionId: int("connectionId").notNull(),
+  owner: varchar("owner", { length: 120 }).notNull(),
+  name: varchar("name", { length: 160 }).notNull(),
+  fullName: varchar("fullName", { length: 300 }).notNull(),
+  defaultBranch: varchar("defaultBranch", { length: 120 }).notNull(),
+  isPrivate: int("isPrivate").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("githubRepositories_connection_full_name_unique").on(table.connectionId, table.fullName)]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

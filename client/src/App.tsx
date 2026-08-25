@@ -7,10 +7,12 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Agents from "./pages/Agents";
 import Chat from "./pages/Chat";
 import ComingSoon from "./pages/ComingSoon";
-import { DeploymentsTool, GitHubTool, MediaTool, TerminalTool } from "./pages/CompanionTools";
+import { DeploymentsTool, MediaTool, TerminalTool } from "./pages/CompanionTools";
+import GitHubWorkspace from "./pages/GitHubWorkspace";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import Projects from "./pages/Projects";
+import ProjectVault from "./pages/ProjectVault";
 import Workspace from "./pages/Workspace";
 
 function Router() {
@@ -21,10 +23,10 @@ function Router() {
     <Route path="/agents" component={Agents} />
     <Route path="/workspace" component={Workspace} />
     <Route path="/terminal" component={TerminalTool} />
-    <Route path="/github" component={GitHubTool} />
+    <Route path="/github" component={GitHubWorkspace} />
     <Route path="/deployments" component={DeploymentsTool} />
     <Route path="/media" component={MediaTool} />
-    <Route path="/settings">{() => <ComingSoon area="settings" />}</Route>
+    <Route path="/settings" component={ProjectVault} />
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />
   </Switch></DashboardLayout>;

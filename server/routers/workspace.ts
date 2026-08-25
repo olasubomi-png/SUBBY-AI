@@ -1,9 +1,10 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { activityEvents, agentTasks, chatMessages, commandDrafts, deploymentPlans, mediaAssets, projects, repositoryProfiles, workspaceFiles } from "../../drizzle/schema";
+import { activityEvents, agentTasks, chatMessages, commandDrafts, deploymentPlans, mediaAssets, projectSecrets, projects, repositoryProfiles, workspaceFiles } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { invokeLLM, listLLMModels } from "../_core/llm";
 import { generateImage } from "../_core/imageGeneration";
+import { encryptProjectSecret, isProjectVaultConfigured } from "../projectSecrets";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const projectStatus = z.enum(["planning", "building", "review", "paused"]);
@@ -288,5 +289,42 @@ export const workspaceRouter = router({
       const [result] = await db.insert(mediaAssets).values({ userId: ctx.user.id, projectId: input.projectId ?? null, prompt: input.prompt, url });
       await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "workspace", title: "Generated project image", detail: input.prompt.slice(0, 96) });
       return { id: result.insertId, url };
+    }),
+
+  projectVaultStatus: protectedProcedure.query(() => ({ configured: isProjectVaultConfigured() })),
+
+  listProjectSecrets: protectedProcedure
+    .input(companionProject)
+    .query(async ({ ctx, input }) => {
+      const { db } = await requireProjectAccess(ctx.user.id, input.projectId);
+      const secrets = await db.select({ id: projectSecrets.id, name: projectSecrets.name, createdAt: projectSecrets.createdAt, updatedAt: projectSecrets.updatedAt })
+        .from(projectSecrets)
+        .where(and(eq(projectSecrets.userId, ctx.user.id), eq(projectSecrets.projectId, input.projectId)))
+        .orderBy(projectSecrets.name);
+      return secrets.map((secret) => ({ ...secret, createdAt: asDateTime(secret.createdAt), updatedAt: asDateTime(secret.updatedAt) }));
+    }),
+
+  saveProjectSecret: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive(), name: z.string().trim().regex(/^[A-Z][A-Z0-9_]{1,127}$/, "Use an uppercase secret name with letters, numbers, and underscores."), value: z.string().min(1).max(10000) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!isProjectVaultConfigured()) throw new Error("Project Vault encryption is not configured yet.");
+      const { db, project } = await requireProjectAccess(ctx.user.id, input.projectId);
+      const encrypted = encryptProjectSecret(input.value);
+      await db.insert(projectSecrets).values({ userId: ctx.user.id, projectId: input.projectId, name: input.name, ...encrypted })
+        .onDuplicateKeyUpdate({ set: { ciphertext: encrypted.ciphertext, iv: encrypted.iv, authTag: encrypted.authTag } });
+      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "workspace", title: "Updated Project Vault entry", detail: project.name });
+      return { success: true };
+    }),
+
+  deleteProjectSecret: protectedProcedure
+    .input(z.object({ id: z.number().int().positive(), confirmed: z.literal(true) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [secret] = await db.select().from(projectSecrets).where(and(eq(projectSecrets.id, input.id), eq(projectSecrets.userId, ctx.user.id))).limit(1);
+      if (!secret) throw new Error("Project Vault entry not found.");
+      await db.delete(projectSecrets).where(eq(projectSecrets.id, input.id));
+      await appendActivity(ctx.user.id, { projectId: secret.projectId, kind: "workspace", title: "Deleted Project Vault entry", detail: "Encrypted secret metadata" });
+      return { success: true };
     }),
 });

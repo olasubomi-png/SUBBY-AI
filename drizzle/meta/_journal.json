@@ -29,6 +29,20 @@
       "when": 1787647153393,
       "tag": "0003_mature_mach_iv",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787648872899,
+      "tag": "0004_supreme_warbound",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1787651338812,
+      "tag": "0005_wild_fallen_one",
+      "breakpoints": true
     }
   ]
 }
