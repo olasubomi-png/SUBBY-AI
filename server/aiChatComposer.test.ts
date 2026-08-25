@@ -12,10 +12,12 @@ describe("AIChatBox composer actions", () => {
       messages: [{ role: "assistant", content: "A long repository response with `very-long-token-that-must-wrap-inside-the-message-bubble`." }],
       onSendMessage: vi.fn(),
       composerActions: createElement("button", { type: "button", "aria-label": "Add to chat" }, "Add to chat"),
+      onOpenVault: vi.fn(),
       height: "400px",
     }));
 
     expect(html).toContain("Add to chat");
+    expect(html).toContain("Open Project Vault to store a secret");
     expect(html).toContain("overflow-hidden");
     expect(html).toContain("max-w-[calc(100%-2.75rem)]");
   });

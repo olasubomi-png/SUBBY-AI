@@ -15,11 +15,13 @@ vi.mock("../client/src/lib/trpc", () => ({
       listChatSessions: { useQuery: () => ({ data: [mocks.session], isLoading: false }) },
       chatHistory: { useQuery: () => ({ data: [], isLoading: false }) },
       listFiles: { useQuery: () => ({ data: [{ id: 7, path: "src/App.tsx", language: "typescript", content: "export default {}" }] }) },
+      projectVaultStatus: { useQuery: () => ({ data: { configured: true } }) },
       createChatSession: { useMutation: mocks.mutation },
       askSubby: { useMutation: mocks.mutation },
       attachRepositoryToChat: { useMutation: mocks.mutation },
       createTask: { useMutation: mocks.mutation },
       generateMediaImage: { useMutation: mocks.mutation },
+      saveProjectSecret: { useMutation: mocks.mutation },
     },
     github: {
       status: { useQuery: () => ({ data: { connection: { id: 2 } } }) },

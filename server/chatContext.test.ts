@@ -23,7 +23,9 @@ describe("buildSafeChatContext", () => {
 
     expect(prompt).toContain("Project: Vegas");
     expect(prompt).toContain("Linked repository: owner/game");
-    expect(prompt).toContain("Never request, reveal, or infer Project Vault values");
+    expect(prompt).toContain("Never request, reveal, infer, or use Project Vault values in chat or shell commands");
+    expect(prompt).toContain("manually dispatchable GitHub Actions workflows after confirmation");
+    expect(prompt).toContain("If a branch is protected, recommend the pull-request path");
     expect(prompt).not.toContain("DATABASE_PASSWORD");
   });
 });

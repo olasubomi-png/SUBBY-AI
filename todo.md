@@ -59,3 +59,7 @@
 - [x] Make unavailable advanced tool categories explicit rather than presenting non-functional menu actions.
 - [x] Repair mobile chat sizing, scrolling, code-block wrapping, and composer safe-area spacing so all message text remains readable.
 - [x] Add regression coverage, validate the composer menu and mobile chat layout, and publish the upgrade.
+- [x] Add a composer-level Project Vault entry point for storing per-project runtime secrets without rendering saved values.
+- [x] Reaffirm that Project Vault values remain unavailable to chat prompts, browser responses, and arbitrary shell execution.
+- [x] Improve chat guidance for approved GitHub commits, protected-branch PR fallback, and existing manually dispatchable test workflows.
+- [x] Add regression coverage, validate the secure composer workflow, and publish the update.

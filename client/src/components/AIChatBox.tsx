@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Loader2, Send, User, Sparkles } from "lucide-react";
+import { KeyRound, Loader2, Send, User, Sparkles } from "lucide-react";
 import React, { useState, useEffect, useRef, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
 
@@ -60,6 +60,9 @@ export type AIChatBoxProps = {
 
   /** Optional functional controls rendered before the composer textarea. */
   composerActions?: ReactNode;
+
+  /** Opens the parent workspace's secure Project Vault flow. */
+  onOpenVault?: () => void;
 
   /** External tool actions can insert editable text into the composer. */
   draft?: { id: number; content: string } | null;
@@ -126,6 +129,7 @@ export function AIChatBox({
   emptyStateMessage = "Start a conversation with AI",
   suggestedPrompts,
   composerActions,
+  onOpenVault,
   draft,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
@@ -290,6 +294,7 @@ export function AIChatBox({
         className="relative flex gap-2 border-t bg-background/50 p-4 items-end"
       >
         {composerActions}
+        {onOpenVault && <button type="button" onClick={onOpenVault} className="composer-vault-button" aria-label="Open Project Vault to store a secret"><KeyRound className="size-4" /></button>}
         <Textarea
           ref={textareaRef}
           value={input}
