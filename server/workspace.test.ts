@@ -59,3 +59,14 @@ describe("workspace file validation", () => {
     await expect(caller.workspace.deleteFile({ id: 1, confirmed: false as true })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
+
+describe("workspace companion tool validation", () => {
+  it("rejects malformed repository, command, deployment, and media inputs before side effects", async () => {
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.workspace.saveRepositoryProfile({ projectId: 1, remoteUrl: "not-a-url", defaultBranch: "main" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.workspace.createCommandDraft({ projectId: 1, command: "" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.workspace.createDeploymentPlan({ projectId: 1, environment: "production", targetUrl: "invalid-url" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.workspace.generateMediaImage({ projectId: 1, prompt: "too short" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});

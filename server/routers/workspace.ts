@@ -1,8 +1,9 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { activityEvents, agentTasks, chatMessages, projects, workspaceFiles } from "../../drizzle/schema";
+import { activityEvents, agentTasks, chatMessages, commandDrafts, deploymentPlans, mediaAssets, projects, repositoryProfiles, workspaceFiles } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { invokeLLM, listLLMModels } from "../_core/llm";
+import { generateImage } from "../_core/imageGeneration";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const projectStatus = z.enum(["planning", "building", "review", "paused"]);
@@ -18,6 +19,9 @@ const fileInput = z.object({
   language: z.string().trim().min(1).max(32).default("plaintext"),
   content: z.string().max(50000).default(""),
 });
+const companionProject = z.object({ projectId: z.number().int().positive() });
+const commandState = z.enum(["draft", "review", "ready"]);
+const deploymentState = z.enum(["planned", "ready", "released"]);
 
 function asDateTime(value: Date | string | null | undefined) {
   return value ? new Date(value).getTime() : Date.now();
@@ -201,5 +205,88 @@ export const workspaceRouter = router({
       await db.delete(workspaceFiles).where(eq(workspaceFiles.id, input.id));
       await appendActivity(ctx.user.id, { projectId: file.projectId, kind: "workspace", title: `Deleted ${file.path}`, detail: "Project file" });
       return { success: true };
+    }),
+
+  companionSnapshot: protectedProcedure
+    .input(companionProject)
+    .query(async ({ ctx, input }) => {
+      const { db } = await requireProjectAccess(ctx.user.id, input.projectId);
+      const [repository, commands, deployments, media] = await Promise.all([
+        db.select().from(repositoryProfiles).where(and(eq(repositoryProfiles.projectId, input.projectId), eq(repositoryProfiles.userId, ctx.user.id))).limit(1),
+        db.select().from(commandDrafts).where(and(eq(commandDrafts.projectId, input.projectId), eq(commandDrafts.userId, ctx.user.id))).orderBy(desc(commandDrafts.updatedAt)),
+        db.select().from(deploymentPlans).where(and(eq(deploymentPlans.projectId, input.projectId), eq(deploymentPlans.userId, ctx.user.id))).orderBy(desc(deploymentPlans.updatedAt)),
+        db.select().from(mediaAssets).where(and(eq(mediaAssets.userId, ctx.user.id), eq(mediaAssets.projectId, input.projectId))).orderBy(desc(mediaAssets.createdAt)).limit(18),
+      ]);
+      return {
+        repository: repository[0] ? { ...repository[0], createdAt: asDateTime(repository[0].createdAt), updatedAt: asDateTime(repository[0].updatedAt) } : null,
+        commands: commands.map((command) => ({ ...command, createdAt: asDateTime(command.createdAt), updatedAt: asDateTime(command.updatedAt) })),
+        deployments: deployments.map((deployment) => ({ ...deployment, createdAt: asDateTime(deployment.createdAt), updatedAt: asDateTime(deployment.updatedAt) })),
+        media: media.map((asset) => ({ ...asset, createdAt: asDateTime(asset.createdAt) })),
+      };
+    }),
+
+  saveRepositoryProfile: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive(), remoteUrl: z.string().trim().url().max(500).optional().or(z.literal("")), defaultBranch: z.string().trim().min(1).max(120), notes: z.string().trim().max(3000).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const { db, project } = await requireProjectAccess(ctx.user.id, input.projectId);
+      const values = { userId: ctx.user.id, projectId: input.projectId, remoteUrl: input.remoteUrl || null, defaultBranch: input.defaultBranch, notes: input.notes || null };
+      await db.insert(repositoryProfiles).values(values).onDuplicateKeyUpdate({ set: { remoteUrl: values.remoteUrl, defaultBranch: values.defaultBranch, notes: values.notes } });
+      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "workspace", title: "Updated repository plan", detail: project.name });
+      return { success: true };
+    }),
+
+  createCommandDraft: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive(), command: z.string().trim().min(1).max(500), description: z.string().trim().max(1000).optional(), state: commandState.default("draft") }))
+    .mutation(async ({ ctx, input }) => {
+      const { db, project } = await requireProjectAccess(ctx.user.id, input.projectId);
+      const [result] = await db.insert(commandDrafts).values({ userId: ctx.user.id, ...input });
+      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "workspace", title: "Added command runbook step", detail: project.name });
+      return { id: result.insertId };
+    }),
+
+  updateCommandState: protectedProcedure
+    .input(z.object({ id: z.number().int().positive(), state: commandState }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [command] = await db.select().from(commandDrafts).where(and(eq(commandDrafts.id, input.id), eq(commandDrafts.userId, ctx.user.id))).limit(1);
+      if (!command) throw new Error("Command runbook item not found.");
+      await db.update(commandDrafts).set({ state: input.state }).where(eq(commandDrafts.id, input.id));
+      await appendActivity(ctx.user.id, { projectId: command.projectId, kind: "workspace", title: `Command marked ${input.state}`, detail: command.command.slice(0, 90) });
+      return { success: true };
+    }),
+
+  createDeploymentPlan: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive(), environment: z.enum(["development", "staging", "production"]), targetUrl: z.string().trim().url().max(500).optional().or(z.literal("")), state: deploymentState.default("planned") }))
+    .mutation(async ({ ctx, input }) => {
+      const { db, project } = await requireProjectAccess(ctx.user.id, input.projectId);
+      const [result] = await db.insert(deploymentPlans).values({ userId: ctx.user.id, projectId: input.projectId, environment: input.environment, targetUrl: input.targetUrl || null, state: input.state });
+      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "workspace", title: `Planned ${input.environment} release`, detail: project.name });
+      return { id: result.insertId };
+    }),
+
+  updateDeploymentState: protectedProcedure
+    .input(z.object({ id: z.number().int().positive(), state: deploymentState }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [deployment] = await db.select().from(deploymentPlans).where(and(eq(deploymentPlans.id, input.id), eq(deploymentPlans.userId, ctx.user.id))).limit(1);
+      if (!deployment) throw new Error("Deployment plan not found.");
+      await db.update(deploymentPlans).set({ state: input.state }).where(eq(deploymentPlans.id, input.id));
+      await appendActivity(ctx.user.id, { projectId: deployment.projectId, kind: "workspace", title: `Release plan marked ${input.state}`, detail: deployment.environment });
+      return { success: true };
+    }),
+
+  generateMediaImage: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive().nullable().optional(), prompt: z.string().trim().min(12).max(2500) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      if (input.projectId) await requireProjectAccess(ctx.user.id, input.projectId);
+      const { url } = await generateImage({ prompt: input.prompt });
+      if (!url) throw new Error("Image generation returned no asset URL. Please try again.");
+      const [result] = await db.insert(mediaAssets).values({ userId: ctx.user.id, projectId: input.projectId ?? null, prompt: input.prompt, url });
+      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "workspace", title: "Generated project image", detail: input.prompt.slice(0, 96) });
+      return { id: result.insertId, url };
     }),
 });

@@ -16,3 +16,6 @@
 - [x] Add persisted project-file records and safe file management procedures.
 - [x] Build a project-file workspace with project selection, file creation, editing, deletion, and unsaved-change feedback.
 - [x] Add workspace-file tests, run production validation, and save a checkpoint for the expansion.
+- [x] Add persisted records and protected procedures for repository plans, command drafts, deployment plans, and media briefs.
+- [x] Replace the Terminal, Deployments, Media, and GitHub placeholders with functional no-connector workspace pages.
+- [x] Add tests, validate responsive behavior, and save a checkpoint for the placeholder replacement work.

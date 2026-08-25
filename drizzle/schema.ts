@@ -63,5 +63,48 @@ export const workspaceFiles = mysqlTable("workspaceFiles", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [uniqueIndex("workspaceFiles_project_path_unique").on(table.projectId, table.path)]);
 
+export const repositoryProfiles = mysqlTable("repositoryProfiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  remoteUrl: varchar("remoteUrl", { length: 500 }),
+  defaultBranch: varchar("defaultBranch", { length: 120 }).default("main").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("repositoryProfiles_project_unique").on(table.projectId)]);
+
+export const commandDrafts = mysqlTable("commandDrafts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  command: varchar("command", { length: 500 }).notNull(),
+  description: varchar("description", { length: 1000 }),
+  state: mysqlEnum("state", ["draft", "review", "ready"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const deploymentPlans = mysqlTable("deploymentPlans", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  environment: mysqlEnum("environment", ["development", "staging", "production"]).notNull(),
+  targetUrl: varchar("targetUrl", { length: 500 }),
+  state: mysqlEnum("state", ["planned", "ready", "released"]).default("planned").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const mediaAssets = mysqlTable("mediaAssets", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId"),
+  kind: mysqlEnum("kind", ["image"]).default("image").notNull(),
+  prompt: text("prompt").notNull(),
+  url: varchar("url", { length: 1000 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
