@@ -144,6 +144,35 @@ export const proposalReviewFiles = mysqlTable("proposalReviewFiles", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => [uniqueIndex("proposalReviewFiles_review_path_unique").on(table.reviewId, table.path)]);
 
+export const workflowRunSnapshots = mysqlTable("workflowRunSnapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  repositoryId: int("repositoryId"),
+  branch: varchar("branch", { length: 255 }).notNull(),
+  runId: int("runId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  status: varchar("status", { length: 32 }).notNull(),
+  conclusion: varchar("conclusion", { length: 32 }),
+  event: varchar("event", { length: 64 }),
+  runNumber: int("runNumber"),
+  url: varchar("url", { length: 1000 }).notNull(),
+  createdAtGithub: timestamp("createdAtGithub").notNull(),
+  updatedAtGithub: timestamp("updatedAtGithub").notNull(),
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+}, (table) => [uniqueIndex("workflowRunSnapshots_user_repo_run_unique").on(table.userId, table.repositoryId, table.runId)]);
+
+export const proposalReviewComments = mysqlTable("proposalReviewComments", {
+  id: int("id").autoincrement().primaryKey(),
+  reviewFileId: int("reviewFileId").notNull(),
+  userId: int("userId").notNull(),
+  body: text("body").notNull(),
+  lineNumber: int("lineNumber"),
+  side: mysqlEnum("side", ["old", "new"]).default("new").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const projectSecrets = mysqlTable("projectSecrets", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),

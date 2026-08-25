@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
-import { activityEvents, chatSessions, githubConnections, githubRepositories, projects, proposalReviewFiles, proposalReviews } from "../../drizzle/schema";
+import { activityEvents, chatSessions, githubConnections, githubRepositories, projects, proposalReviewComments, proposalReviewFiles, proposalReviews, workflowRunSnapshots } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { beginGitHubConnection, getGitHubConnection, getProjectRepository, getUserRepository, githubRequest, listGitHubRepositoryBranches, type GithubRepository } from "../github";
 import { isGitHubOAuthConfigured } from "../githubConfig";
@@ -215,7 +215,21 @@ export const githubRouter = router({
       const endpoint = input.workflowId ? `/repos/${repositoryPath(repository.fullName)}/actions/workflows/${input.workflowId}/runs?per_page=10` : `/repos/${repositoryPath(repository.fullName)}/actions/runs?per_page=10`;
       const query = input.branch ? `${endpoint}${endpoint.includes("?") ? "&" : "?"}branch=${encodeURIComponent(input.branch)}` : endpoint;
       const data = await githubRequest<{ workflow_runs?: GitHubWorkflowRunResponse[] }>(ctx.user.id, { url: query });
-      return (data.workflow_runs ?? []).map((run) => normalizeWorkflowRun(run, input.branch ?? repository.defaultBranch));
+      const runs = (data.workflow_runs ?? []).map((run) => normalizeWorkflowRun(run, input.branch ?? repository.defaultBranch));
+      const db = await getDb();
+      if (db) for (const run of runs) await db.insert(workflowRunSnapshots).values({ userId: ctx.user.id, projectId: input.projectId, repositoryId: input.repositoryId ?? repository.id, branch: run.branch, runId: run.id, name: run.name, status: run.status, conclusion: run.conclusion, event: run.event, runNumber: run.runNumber, url: run.url, createdAtGithub: new Date(run.createdAt), updatedAtGithub: new Date(run.updatedAt) }).onDuplicateKeyUpdate({ set: { projectId: input.projectId, repositoryId: input.repositoryId ?? repository.id, branch: run.branch, name: run.name, status: run.status, conclusion: run.conclusion, event: run.event, runNumber: run.runNumber, url: run.url, createdAtGithub: new Date(run.createdAt), updatedAtGithub: new Date(run.updatedAt), fetchedAt: new Date() } });
+      return runs;
+    }),
+  workflowRunHistory: protectedProcedure
+    .input(projectInput.extend({ repositoryId: z.number().int().positive().optional(), branch: z.string().trim().min(1).max(255).optional() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      await requireProject(ctx.user.id, input.projectId);
+      const filters = [eq(workflowRunSnapshots.userId, ctx.user.id), eq(workflowRunSnapshots.projectId, input.projectId)];
+      if (input.repositoryId) filters.push(eq(workflowRunSnapshots.repositoryId, input.repositoryId));
+      if (input.branch) filters.push(eq(workflowRunSnapshots.branch, input.branch));
+      return db.select().from(workflowRunSnapshots).where(and(...filters)).orderBy(desc(workflowRunSnapshots.updatedAtGithub)).limit(20);
     }),
   dispatchWorkflow: protectedProcedure
     .input(z.object({ projectId: z.number().int().positive(), repositoryId: z.number().int().positive().optional(), workflowId: z.number().int().positive(), branch: z.string().trim().min(1).max(255).optional(), confirmed: z.literal(true) }))
@@ -271,6 +285,29 @@ export const githubRouter = router({
       if (!review) return null;
       const files = await db.select().from(proposalReviewFiles).where(eq(proposalReviewFiles.reviewId, review.id)).orderBy(proposalReviewFiles.id);
       return { id: review.id, branch: review.branch, state: review.state, files: files.map(({ id, path, content, baseContent, summary, commitMessage, baseSha, state }) => ({ id, path, content, baseContent, summary, commitMessage, baseSha, state })) };
+    }),
+  listProposalComments: protectedProcedure
+    .input(z.object({ reviewFileId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [file] = await db.select({ id: proposalReviewFiles.id, reviewId: proposalReviewFiles.reviewId }).from(proposalReviewFiles).where(eq(proposalReviewFiles.id, input.reviewFileId)).limit(1);
+      if (!file) throw new Error("Proposal file not found.");
+      const [review] = await db.select({ id: proposalReviews.id }).from(proposalReviews).where(and(eq(proposalReviews.id, file.reviewId), eq(proposalReviews.userId, ctx.user.id))).limit(1);
+      if (!review) throw new Error("Proposal review not found.");
+      return db.select().from(proposalReviewComments).where(and(eq(proposalReviewComments.reviewFileId, input.reviewFileId), eq(proposalReviewComments.userId, ctx.user.id))).orderBy(proposalReviewComments.createdAt);
+    }),
+  addProposalComment: protectedProcedure
+    .input(z.object({ reviewFileId: z.number().int().positive(), body: z.string().trim().min(1).max(2000), lineNumber: z.number().int().positive().max(200000).optional(), side: z.enum(["old", "new"]).default("new") }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [file] = await db.select({ id: proposalReviewFiles.id, reviewId: proposalReviewFiles.reviewId }).from(proposalReviewFiles).where(eq(proposalReviewFiles.id, input.reviewFileId)).limit(1);
+      if (!file) throw new Error("Proposal file not found.");
+      const [review] = await db.select({ id: proposalReviews.id }).from(proposalReviews).where(and(eq(proposalReviews.id, file.reviewId), eq(proposalReviews.userId, ctx.user.id))).limit(1);
+      if (!review) throw new Error("Proposal review not found.");
+      const inserted = await db.insert(proposalReviewComments).values({ reviewFileId: input.reviewFileId, userId: ctx.user.id, body: input.body, lineNumber: input.lineNumber ?? null, side: input.side });
+      return { id: Number(inserted[0].insertId), success: true };
     }),
   saveProposalReview: protectedProcedure
     .input(z.object({ sessionId: z.number().int().positive(), projectId: z.number().int().positive(), repositoryId: z.number().int().positive().optional(), branch: z.string().trim().min(1).max(255), reviewId: z.number().int().positive().optional(), changes: z.array(reviewedChangeInput).min(1).max(8) }))

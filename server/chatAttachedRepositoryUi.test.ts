@@ -30,6 +30,8 @@ vi.mock("../client/src/lib/trpc", () => ({
       repositoryContext: { useQuery: () => ({ data: { repository: { fullName: "owner/game", defaultBranch: "feature/chat" }, files: ["src/App.tsx"] } }) },
       listWorkflows: { useQuery: () => ({ data: [{ id: 42, name: "Tests", state: "active", dispatchable: true }] }) },
       workflowRuns: { useQuery: () => ({ data: [], isFetching: false, refetch: vi.fn() }) },
+      workflowRunHistory: { useQuery: () => ({ data: [], isFetching: false, refetch: vi.fn() }) },
+      listProposalComments: { useQuery: () => ({ data: [], refetch: vi.fn() }) },
       getProposalReview: { useQuery: () => ({ data: null, refetch: vi.fn() }) },
       operationHistory: { useQuery: () => ({ data: [{ id: 91, title: "Inspected repository structure", detail: "owner/game · feature/chat · 8 files" }] }) },
       bindRepository: { useMutation: mocks.mutation },
@@ -44,6 +46,7 @@ vi.mock("../client/src/lib/trpc", () => ({
       saveProposalReview: { useMutation: mocks.mutation },
       setProposalReviewFileState: { useMutation: mocks.mutation },
       clearProposalReview: { useMutation: mocks.mutation },
+      addProposalComment: { useMutation: mocks.mutation },
     },
   },
 }));
