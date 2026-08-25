@@ -129,7 +129,10 @@
 - [x] Save and publish a checkpoint for Actions history, comments, side-by-side review, and resume-review entry points.
 - [x] Add an explicit Resume review affordance in the attached-repository panel for persisted open reviews.
 - [x] Add deterministic tests for Actions snapshot persistence/history mapping, inline comment contracts, side-by-side diff output, and resume-review visibility.
-- [ ] Inspect the authenticated GitHub target and local git state for the SUBBY-AI publication.
-- [ ] Verify no environment secrets or generated credentials are included in the GitHub commit.
-- [ ] Push the current SUBBY-AI source to the private `olasubomi-png/SUBBY-AI` repository.
-- [ ] Verify the remote main branch and report the GitHub repository URL.
+- [x] Inspect the authenticated GitHub target and local git state for the SUBBY-AI publication.
+- [x] Verify no environment secrets or generated credentials are included in the GitHub commit.
+- [x] Push the current SUBBY-AI source to the private `olasubomi-png/SUBBY-AI` repository.
+- [x] Verify the remote main branch and report the GitHub repository URL.
+- [x] Audit tracked repository content for embedded secrets, credentials, and token-shaped values before finalizing GitHub publication safety; the only match is a runtime environment-variable reference in Map.tsx.
+- [x] Confirm ignore rules and pushed GitHub state exclude `.env` files and credential artifacts, then re-verify the remote repository; no `.env` path is tracked and the private remote main branch is verified.
+- [x] Inspect the pushed `server/projectSecrets.ts` and `server/projectSecrets.test.ts` files and document that they contain only application/test logic, not embedded secrets or credential material.
