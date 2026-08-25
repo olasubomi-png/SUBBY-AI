@@ -98,5 +98,5 @@
 - [x] Audit the attached ENV-AI workspace ZIP and prompt against the current SUBBY architecture and capabilities.
 - [x] Apply a compatible foundation improvement: add provider-agnostic Auto, Best quality, Fast, and Economy model profiles while preserving SUBBY branding, approval gates, Vault isolation, and existing working features.
 - [x] Add regression coverage and validate the merged result with TypeScript checks, 31 Vitest tests, and responsive mobile/desktop verification; the production bundle remains limited by sandbox memory during chunk rendering.
-- [ ] Publish a checkpoint documenting reused functionality, applied fixes, and explicitly unavailable capabilities.
+- [x] Publish a checkpoint documenting reused functionality, applied fixes, and explicitly unavailable capabilities.
 - [x] Investigate Vite production-build memory pressure; confirm optional compressed-size reporting was not the failing step and revert the ineffective configuration change.
