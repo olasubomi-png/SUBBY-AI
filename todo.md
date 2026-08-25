@@ -91,3 +91,7 @@
 - [x] Anchor the Agent/Plan selector and message composer at the bottom of the mobile Chat viewport.
 - [x] Keep only the conversation history scrollable above the bottom composer so it cannot cover messages.
 - [x] Verify the bottom-anchored layout at phone and desktop sizes, run tests, and publish the correction.
+- [x] Review the attached full-platform audit against the current SUBBY architecture and identify functional, mocked, and incomplete areas.
+- [x] Apply the selected safe audit slice: enrich real GitHub repository inspection with reusable project intelligence without replacing working features or simulating unavailable actions.
+- [x] Add regression coverage and verify the selected improvements across the real application workflow.
+- [ ] Publish a checkpoint documenting the completed repository-intelligence slice and remaining terminal, MCP, video, and persistent-job limitations.

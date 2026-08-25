@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import { beginGitHubConnection, getGitHubConnection, getProjectRepository, getUserRepository, githubRequest, listGitHubRepositoryBranches, type GithubRepository } from "../github";
 import { isGitHubOAuthConfigured } from "../githubConfig";
 import { supportsManualDispatch } from "../githubWorkflow";
+import { analyzeRepositoryFiles, intelligenceSummary } from "../repositoryIntelligence";
 import { invokeLLM, listLLMModels } from "../_core/llm";
 import { protectedProcedure, router } from "../_core/trpc";
 
@@ -95,17 +96,17 @@ export const githubRouter = router({
       const branch = input.branch ?? repository.defaultBranch;
       const tree = await githubRequest<{ tree: { path: string; type: string; size?: number }[] }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/git/trees/${encodeURIComponent(branch)}?recursive=1` });
       const files = tree.tree.filter((entry) => entry.type === "blob").map((entry) => entry.path);
-      const preferred = ["README.md", "package.json", "pnpm-lock.yaml", "yarn.lock", "requirements.txt", "pyproject.toml", "Dockerfile", "docker-compose.yml", ".github/workflows"];
-      const highlights = preferred.filter((name) => files.some((path) => path === name || path.startsWith(`${name}/`))).slice(0, 8);
+      const intelligence = analyzeRepositoryFiles(files);
+      const highlights = intelligence.importantFiles.slice(0, 8);
       const extensionCounts = new Map<string, number>();
       for (const path of files) {
         const extension = path.includes(".") ? path.split(".").pop()?.toLowerCase() : undefined;
         if (extension && extension.length <= 8) extensionCounts.set(extension, (extensionCounts.get(extension) ?? 0) + 1);
       }
       const technologies = Array.from(extensionCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([extension, count]) => `${extension} (${count})`);
-      const summary = `I inspected ${repository.fullName} on ${branch}. I found ${files.length} tracked files${technologies.length ? `, with common file types: ${technologies.join(", ")}` : ""}${highlights.length ? `. Key project files detected: ${highlights.join(", ")}` : ""}.`;
-      await recordGitHubActivity(ctx.user.id, input.projectId, "Inspected repository structure", `${repository.fullName} · ${branch} · ${files.length} files`);
-      return { fullName: repository.fullName, branch, fileCount: files.length, highlights, technologies, summary };
+      const summary = `I inspected ${repository.fullName} on ${branch}. I found ${files.length} tracked files${technologies.length ? `, with common file types: ${technologies.join(", ")}` : ""}${highlights.length ? `. Key project files detected: ${highlights.join(", ")}` : ""}. Project intelligence: ${intelligenceSummary(intelligence)}`;
+      await recordGitHubActivity(ctx.user.id, input.projectId, "Inspected repository structure", `${repository.fullName} · ${branch} · ${files.length} files · ${intelligence.languages.join(", ") || "unknown language"}`);
+      return { fullName: repository.fullName, branch, fileCount: files.length, highlights, technologies, intelligence, summary };
     }),
 
   readRepositoryFile: protectedProcedure
