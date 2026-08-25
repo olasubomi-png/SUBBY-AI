@@ -4,6 +4,7 @@ export type ReviewedFileChange = {
   commitMessage: string;
   summary: string;
   baseSha?: string;
+  baseContent?: string;
 };
 
 export type GitTreeBlob = {
@@ -24,6 +25,7 @@ export function normalizeReviewedChanges(changes: ReviewedFileChange[], maxFiles
       commitMessage: change.commitMessage.trim(),
       summary: change.summary.trim(),
       ...(change.baseSha ? { baseSha: change.baseSha } : {}),
+      ...(change.baseContent !== undefined ? { baseContent: change.baseContent } : {}),
     });
   }
   return Array.from(unique.values()).slice(0, maxFiles);

@@ -1,0 +1,1 @@
+ALTER TABLE `proposalReviewFiles` ADD `baseContent` text;

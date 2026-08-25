@@ -118,6 +118,32 @@ export const mediaAssets = mysqlTable("mediaAssets", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const proposalReviews = mysqlTable("proposalReviews", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId").notNull(),
+  sessionId: int("sessionId").notNull(),
+  repositoryId: int("repositoryId"),
+  branch: varchar("branch", { length: 255 }).notNull(),
+  state: mysqlEnum("state", ["open", "approved", "rejected", "expired"]).default("open").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const proposalReviewFiles = mysqlTable("proposalReviewFiles", {
+  id: int("id").autoincrement().primaryKey(),
+  reviewId: int("reviewId").notNull(),
+  path: varchar("path", { length: 500 }).notNull(),
+  content: text("content").notNull(),
+  baseContent: text("baseContent"),
+  summary: varchar("summary", { length: 1000 }).notNull(),
+  commitMessage: varchar("commitMessage", { length: 200 }).notNull(),
+  baseSha: varchar("baseSha", { length: 200 }).notNull(),
+  state: mysqlEnum("state", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => [uniqueIndex("proposalReviewFiles_review_path_unique").on(table.reviewId, table.path)]);
+
 export const projectSecrets = mysqlTable("projectSecrets", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),

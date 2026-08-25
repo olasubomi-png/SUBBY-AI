@@ -114,3 +114,10 @@
 - [x] Add a real batched GitHub branch-commit approval flow that writes multiple reviewed file changes together safely.
 - [x] Add regression coverage for multi-file queue behavior, duplicate-path replacement, clear-review behavior, and approval payload generation.
 - [x] Add regression coverage for multi-file review queue state transitions, including selection and clear-review reset before any GitHub write.
+- [x] Persist multi-file proposal reviews per chat session without storing or exposing Project Vault values.
+- [x] Add per-file unified diff review with approve/reject state and safe batched approval payloads.
+- [x] Add GitHub Actions run-status cards with refreshable status and activity-ledger entries.
+- [x] Add migration, regression coverage, and responsive verification for the continuation features.
+- [ ] Save and publish a checkpoint for the persisted reviews, unified diff review, and GitHub Actions status-card update after the latest passing tests/build.
+- [x] Implement a real per-file unified diff renderer with added, removed, and context lines for reviewed proposals.
+- [x] Add deterministic regression coverage for unified diff output so approval decisions are based on diff data, not only full-file previews.

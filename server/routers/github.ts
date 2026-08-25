@@ -1,10 +1,10 @@
 import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
-import { activityEvents, githubConnections, githubRepositories, projects } from "../../drizzle/schema";
+import { activityEvents, chatSessions, githubConnections, githubRepositories, projects, proposalReviewFiles, proposalReviews } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { beginGitHubConnection, getGitHubConnection, getProjectRepository, getUserRepository, githubRequest, listGitHubRepositoryBranches, type GithubRepository } from "../github";
 import { isGitHubOAuthConfigured } from "../githubConfig";
-import { supportsManualDispatch } from "../githubWorkflow";
+import { normalizeWorkflowRun, supportsManualDispatch, type GitHubWorkflowRunResponse } from "../githubWorkflow";
 import { analyzeRepositoryFiles, intelligenceSummary } from "../repositoryIntelligence";
 import { invokeLLM, listLLMModels } from "../_core/llm";
 import { buildGitTreeBlobs, combinedCommitMessage, combinedSummary, normalizeReviewedChanges, type ReviewedFileChange } from "../githubChangeReview";
@@ -18,6 +18,7 @@ const reviewedChangeInput = z.object({
   commitMessage: z.string().trim().min(4).max(200),
   summary: z.string().trim().min(4).max(1000),
   baseSha: z.string().trim().min(1).max(200),
+  baseContent: z.string().max(100_000).optional(),
 });
 const batchedApprovalInput = z.object({
   projectId: z.number().int().positive(),
@@ -184,7 +185,7 @@ export const githubRouter = router({
       if (typeof content !== "string") throw new Error("SUBBY could not produce a structured code proposal.");
       const proposal = JSON.parse(content) as { summary: string; commitMessage: string; content: string };
       await recordGitHubActivity(ctx.user.id, input.projectId, "AI prepared code proposal", input.path);
-      return { ...proposal, path: input.path, baseSha: file.sha };
+      return { ...proposal, path: input.path, baseSha: file.sha, baseContent: file.content };
     }),
 
   listWorkflows: protectedProcedure
@@ -205,6 +206,17 @@ export const githubRouter = router({
       }));
     }),
 
+  workflowRuns: protectedProcedure
+    .input(projectInput.extend({ repositoryId: z.number().int().positive().optional(), branch: z.string().trim().min(1).max(255).optional(), workflowId: z.number().int().positive().optional() }))
+    .query(async ({ ctx, input }) => {
+      await requireProject(ctx.user.id, input.projectId);
+      const repository = input.repositoryId ? await getUserRepository(ctx.user.id, input.repositoryId) : await getProjectRepository(ctx.user.id, input.projectId);
+      if (!repository) return [];
+      const endpoint = input.workflowId ? `/repos/${repositoryPath(repository.fullName)}/actions/workflows/${input.workflowId}/runs?per_page=10` : `/repos/${repositoryPath(repository.fullName)}/actions/runs?per_page=10`;
+      const query = input.branch ? `${endpoint}${endpoint.includes("?") ? "&" : "?"}branch=${encodeURIComponent(input.branch)}` : endpoint;
+      const data = await githubRequest<{ workflow_runs?: GitHubWorkflowRunResponse[] }>(ctx.user.id, { url: query });
+      return (data.workflow_runs ?? []).map((run) => normalizeWorkflowRun(run, input.branch ?? repository.defaultBranch));
+    }),
   dispatchWorkflow: protectedProcedure
     .input(z.object({ projectId: z.number().int().positive(), repositoryId: z.number().int().positive().optional(), workflowId: z.number().int().positive(), branch: z.string().trim().min(1).max(255).optional(), confirmed: z.literal(true) }))
     .mutation(async ({ ctx, input }) => {
@@ -248,6 +260,64 @@ export const githubRouter = router({
       return { success: true, branch: input.branch };
     }),
 
+  getProposalReview: protectedProcedure
+    .input(z.object({ sessionId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [session] = await db.select().from(chatSessions).where(and(eq(chatSessions.id, input.sessionId), eq(chatSessions.userId, ctx.user.id))).limit(1);
+      if (!session) throw new Error("Chat session not found.");
+      const [review] = await db.select().from(proposalReviews).where(and(eq(proposalReviews.userId, ctx.user.id), eq(proposalReviews.sessionId, input.sessionId), eq(proposalReviews.state, "open"))).orderBy(desc(proposalReviews.updatedAt)).limit(1);
+      if (!review) return null;
+      const files = await db.select().from(proposalReviewFiles).where(eq(proposalReviewFiles.reviewId, review.id)).orderBy(proposalReviewFiles.id);
+      return { id: review.id, branch: review.branch, state: review.state, files: files.map(({ id, path, content, baseContent, summary, commitMessage, baseSha, state }) => ({ id, path, content, baseContent, summary, commitMessage, baseSha, state })) };
+    }),
+  saveProposalReview: protectedProcedure
+    .input(z.object({ sessionId: z.number().int().positive(), projectId: z.number().int().positive(), repositoryId: z.number().int().positive().optional(), branch: z.string().trim().min(1).max(255), reviewId: z.number().int().positive().optional(), changes: z.array(reviewedChangeInput).min(1).max(8) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [session] = await db.select().from(chatSessions).where(and(eq(chatSessions.id, input.sessionId), eq(chatSessions.userId, ctx.user.id), eq(chatSessions.projectId, input.projectId))).limit(1);
+      if (!session) throw new Error("Chat session not found for this project.");
+      const changes = normalizeReviewedChanges(input.changes);
+      if (changes.length !== input.changes.length || changes.some((change) => !change.baseSha)) throw new Error("Each saved proposal must have a unique safe path and a source GitHub SHA.");
+      let reviewId = input.reviewId;
+      if (reviewId) {
+        const [review] = await db.select().from(proposalReviews).where(and(eq(proposalReviews.id, reviewId), eq(proposalReviews.userId, ctx.user.id), eq(proposalReviews.sessionId, input.sessionId))).limit(1);
+        if (!review) throw new Error("Proposal review not found.");
+        await db.update(proposalReviews).set({ branch: input.branch, repositoryId: input.repositoryId ?? review.repositoryId, state: "open" }).where(eq(proposalReviews.id, reviewId));
+      } else {
+        const inserted = await db.insert(proposalReviews).values({ userId: ctx.user.id, projectId: input.projectId, sessionId: input.sessionId, repositoryId: input.repositoryId ?? null, branch: input.branch, state: "open" });
+        reviewId = Number(inserted[0].insertId);
+      }
+      for (const change of changes) {
+        await db.insert(proposalReviewFiles).values({ reviewId, path: change.path, content: change.content, baseContent: change.baseContent ?? null, summary: change.summary, commitMessage: change.commitMessage, baseSha: change.baseSha as string, state: "pending" }).onDuplicateKeyUpdate({ set: { content: change.content, baseContent: change.baseContent ?? null, summary: change.summary, commitMessage: change.commitMessage, baseSha: change.baseSha as string, state: "pending" } });
+      }
+      await recordGitHubActivity(ctx.user.id, input.projectId, "Saved proposal review", `${changes.length} file${changes.length === 1 ? "" : "s"} · ${input.branch}`);
+      return { reviewId };
+    }),
+  setProposalReviewFileState: protectedProcedure
+    .input(z.object({ reviewId: z.number().int().positive(), fileId: z.number().int().positive(), state: z.enum(["pending", "approved", "rejected"]) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [review] = await db.select().from(proposalReviews).where(and(eq(proposalReviews.id, input.reviewId), eq(proposalReviews.userId, ctx.user.id))).limit(1);
+      if (!review) throw new Error("Proposal review not found.");
+      await db.update(proposalReviewFiles).set({ state: input.state }).where(and(eq(proposalReviewFiles.id, input.fileId), eq(proposalReviewFiles.reviewId, input.reviewId)));
+      await db.update(proposalReviews).set({ state: "open" }).where(eq(proposalReviews.id, input.reviewId));
+      return { success: true, state: input.state };
+    }),
+  clearProposalReview: protectedProcedure
+    .input(z.object({ reviewId: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [review] = await db.select().from(proposalReviews).where(and(eq(proposalReviews.id, input.reviewId), eq(proposalReviews.userId, ctx.user.id))).limit(1);
+      if (!review) throw new Error("Proposal review not found.");
+      await db.update(proposalReviews).set({ state: "rejected" }).where(eq(proposalReviews.id, input.reviewId));
+      await db.update(proposalReviewFiles).set({ state: "rejected" }).where(eq(proposalReviewFiles.reviewId, input.reviewId));
+      return { success: true };
+    }),
   createPullRequestBatch: protectedProcedure
     .input(batchedApprovalInput)
     .mutation(async ({ ctx, input }) => {
