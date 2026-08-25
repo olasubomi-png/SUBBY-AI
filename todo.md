@@ -118,6 +118,6 @@
 - [x] Add per-file unified diff review with approve/reject state and safe batched approval payloads.
 - [x] Add GitHub Actions run-status cards with refreshable status and activity-ledger entries.
 - [x] Add migration, regression coverage, and responsive verification for the continuation features.
-- [ ] Save and publish a checkpoint for the persisted reviews, unified diff review, and GitHub Actions status-card update after the latest passing tests/build.
+- [x] Save and publish a checkpoint for the persisted reviews, unified diff review, and GitHub Actions status-card update after the latest passing tests/build.
 - [x] Implement a real per-file unified diff renderer with added, removed, and context lines for reviewed proposals.
 - [x] Add deterministic regression coverage for unified diff output so approval decisions are based on diff data, not only full-file previews.
