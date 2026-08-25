@@ -14,6 +14,12 @@ export type Message = {
   content: string;
 };
 
+function extractGeneratedMedia(content: string) {
+  const match = content.match(/!\[[^\]]*\]\(((?:https?:\/\/|\/manus-storage\/)[^)\s]+)\)/);
+  if (!match) return null;
+  return { url: match[1], text: content.replace(match[0], "").trim() };
+}
+
 export type AIChatBoxProps = {
   /**
    * Messages array to display in the chat.
@@ -66,6 +72,9 @@ export type AIChatBoxProps = {
 
   /** External tool actions can insert editable text into the composer. */
   draft?: { id: number; content: string } | null;
+
+  /** Visible work ledger for active and completed SUBBY actions. */
+  activityItems?: { id: string | number; title: string; detail?: string; status: "working" | "complete" | "failed" }[];
 };
 
 /**
@@ -131,6 +140,7 @@ export function AIChatBox({
   composerActions,
   onOpenVault,
   draft,
+  activityItems = [],
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -227,7 +237,9 @@ export function AIChatBox({
         ) : (
           <ScrollArea className="h-full min-w-0">
             <div className="flex flex-col space-y-4 p-4">
+              {activityItems.length > 0 && <div className="chat-activity-feed" aria-label="SUBBY work activity">{activityItems.slice(0, 8).map((item) => <div className={`chat-activity-item chat-activity-${item.status}`} key={item.id}><span>{item.status === "working" ? <Loader2 className="size-3.5 animate-spin" /> : item.status === "failed" ? "!" : "✓"}</span><div><strong>{item.title}</strong>{item.detail && <small>{item.detail}</small>}</div></div>)}</div>}
               {displayMessages.map((message, index) => {
+                const generatedMedia = message.role === "assistant" ? extractGeneratedMedia(message.content) : null;
                 return (
                   <div
                     key={index}
@@ -254,7 +266,9 @@ export function AIChatBox({
                     >
                       {message.role === "assistant" ? (
                         <div className="prose prose-sm dark:prose-invert prose-p:text-slate-100 prose-li:text-slate-100 prose-strong:text-white max-w-none break-words [&_code]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto">
-                          <Streamdown>{message.content}</Streamdown>
+                          {generatedMedia?.text && <Streamdown>{generatedMedia.text}</Streamdown>}
+                          {generatedMedia && <a href={generatedMedia.url} target="_blank" rel="noreferrer" className="not-prose mt-3 block"><img src={generatedMedia.url} alt="Generated project media" className="max-h-[420px] w-full rounded-lg border border-cyan-300/20 object-cover" loading="lazy" /></a>}
+                          {!generatedMedia && <Streamdown>{message.content}</Streamdown>}
                         </div>
                       ) : (
                         <p className="whitespace-pre-wrap text-sm">

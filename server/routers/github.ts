@@ -83,6 +83,28 @@ export const githubRouter = router({
       return { repository: { id: repository.id, fullName: repository.fullName, defaultBranch: branch, private: repository.isPrivate === 1 }, files };
     }),
 
+  inspectRepository: protectedProcedure
+    .input(projectInput.extend({ branch: z.string().trim().min(1).max(255).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      await requireProject(ctx.user.id, input.projectId);
+      const repository = await getProjectRepository(ctx.user.id, input.projectId);
+      if (!repository) throw new Error("Attach a repository before asking SUBBY to inspect it.");
+      const branch = input.branch ?? repository.defaultBranch;
+      const tree = await githubRequest<{ tree: { path: string; type: string; size?: number }[] }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/git/trees/${encodeURIComponent(branch)}?recursive=1` });
+      const files = tree.tree.filter((entry) => entry.type === "blob").map((entry) => entry.path);
+      const preferred = ["README.md", "package.json", "pnpm-lock.yaml", "yarn.lock", "requirements.txt", "pyproject.toml", "Dockerfile", "docker-compose.yml", ".github/workflows"];
+      const highlights = preferred.filter((name) => files.some((path) => path === name || path.startsWith(`${name}/`))).slice(0, 8);
+      const extensionCounts = new Map<string, number>();
+      for (const path of files) {
+        const extension = path.includes(".") ? path.split(".").pop()?.toLowerCase() : undefined;
+        if (extension && extension.length <= 8) extensionCounts.set(extension, (extensionCounts.get(extension) ?? 0) + 1);
+      }
+      const technologies = Array.from(extensionCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([extension, count]) => `${extension} (${count})`);
+      const summary = `I inspected ${repository.fullName} on ${branch}. I found ${files.length} tracked files${technologies.length ? `, with common file types: ${technologies.join(", ")}` : ""}${highlights.length ? `. Key project files detected: ${highlights.join(", ")}` : ""}.`;
+      await recordGitHubActivity(ctx.user.id, input.projectId, "Inspected repository structure", `${repository.fullName} · ${branch} · ${files.length} files`);
+      return { fullName: repository.fullName, branch, fileCount: files.length, highlights, technologies, summary };
+    }),
+
   readRepositoryFile: protectedProcedure
     .input(z.object({ projectId: z.number().int().positive(), path: z.string().trim().min(1).max(500), branch: z.string().trim().min(1).max(255).optional() }))
     .query(async ({ ctx, input }) => {

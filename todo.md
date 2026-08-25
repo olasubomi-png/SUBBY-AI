@@ -63,3 +63,8 @@
 - [x] Reaffirm that Project Vault values remain unavailable to chat prompts, browser responses, and arbitrary shell execution.
 - [x] Improve chat guidance for approved GitHub commits, protected-branch PR fallback, and existing manually dispatchable test workflows.
 - [x] Add regression coverage, validate the secure composer workflow, and publish the update.
+- [x] Repair generated-image rendering in chat and show real media output instead of blocked Markdown placeholders.
+- [x] Replace the video-generation prompt-only behavior with a clear runnable generation path or an explicit unavailable state that is not presented as a completed task.
+- [x] Streamline repository attachment for users who already connected GitHub, then inspect the selected repository and invite the user to describe the desired change.
+- [x] Show visible, persistent action-progress cards in chat for repository inspection, workflow dispatch, proposal preparation, pull requests, commits, and media generation.
+- [x] Add regression coverage, validate the mobile and desktop flows, and publish the professional chat workflow update.
