@@ -70,3 +70,12 @@ describe("workspace companion tool validation", () => {
     await expect(caller.workspace.generateMediaImage({ projectId: 1, prompt: "too short" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
+
+describe("workspace conversation sessions", () => {
+  it("returns an empty session list without storage and validates blank titles before side effects", async () => {
+    const caller = appRouter.createCaller(createContext());
+
+    await expect(caller.workspace.listChatSessions()).resolves.toEqual([]);
+    await expect(caller.workspace.createChatSession({ title: "" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+});

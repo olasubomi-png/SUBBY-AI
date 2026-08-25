@@ -1,15 +1,17 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { activityEvents, agentTasks, chatMessages, commandDrafts, deploymentPlans, mediaAssets, projectSecrets, projects, repositoryProfiles, workspaceFiles } from "../../drizzle/schema";
+import { activityEvents, agentTasks, chatMessages, chatSessions, commandDrafts, deploymentPlans, githubRepositories, mediaAssets, projectSecrets, projects, repositoryProfiles, workspaceFiles } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { invokeLLM, listLLMModels } from "../_core/llm";
 import { generateImage } from "../_core/imageGeneration";
 import { encryptProjectSecret, isProjectVaultConfigured } from "../projectSecrets";
+import { buildSafeChatContext, buildSubbySystemPrompt } from "../chatContext";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const projectStatus = z.enum(["planning", "building", "review", "paused"]);
 const taskStatus = z.enum(["queued", "in_progress", "completed"]);
 const chatInput = z.object({
+  sessionId: z.number().int().positive().optional(),
   projectId: z.number().int().positive().nullable().optional(),
   content: z.string().trim().min(1).max(8000),
 });
@@ -46,7 +48,7 @@ async function appendActivity(
 async function requireProjectAccess(userId: number, projectId: number) {
   const db = await getDb();
   if (!db) throw new Error("Workspace storage is currently unavailable.");
-  const [project] = await db.select({ id: projects.id, name: projects.name }).from(projects).where(and(eq(projects.id, projectId), eq(projects.userId, userId))).limit(1);
+  const [project] = await db.select({ id: projects.id, name: projects.name, description: projects.description, status: projects.status }).from(projects).where(and(eq(projects.id, projectId), eq(projects.userId, userId))).limit(1);
   if (!project) throw new Error("Project not found.");
   return { db, project };
 }
@@ -119,11 +121,36 @@ export const workspaceRouter = router({
       return { success: true };
     }),
 
+  listChatSessions: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return [];
+    const sessions = await db.select().from(chatSessions).where(eq(chatSessions.userId, ctx.user.id)).orderBy(desc(chatSessions.updatedAt)).limit(50);
+    return sessions.map((session) => ({ ...session, createdAt: asDateTime(session.createdAt), updatedAt: asDateTime(session.updatedAt) }));
+  }),
+
+  createChatSession: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive().nullable().optional(), title: z.string().trim().min(1).max(140).optional() }).optional())
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const projectId = input?.projectId ?? null;
+      if (projectId) await requireProjectAccess(ctx.user.id, projectId);
+      const title = input?.title ?? "New conversation";
+      const [result] = await db.insert(chatSessions).values({ userId: ctx.user.id, projectId, title });
+      return { id: result.insertId, projectId, title };
+    }),
+
   chatHistory: protectedProcedure
-    .input(z.object({ projectId: z.number().int().positive().nullable().optional() }).optional())
+    .input(z.object({ sessionId: z.number().int().positive().optional(), projectId: z.number().int().positive().nullable().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return [];
+      if (input?.sessionId) {
+        const [session] = await db.select().from(chatSessions).where(and(eq(chatSessions.id, input.sessionId), eq(chatSessions.userId, ctx.user.id))).limit(1);
+        if (!session) throw new Error("Conversation not found.");
+        const rows = await db.select().from(chatMessages).where(and(eq(chatMessages.userId, ctx.user.id), eq(chatMessages.sessionId, input.sessionId))).orderBy(chatMessages.createdAt).limit(60);
+        return rows.map((message) => ({ ...message, createdAt: asDateTime(message.createdAt) }));
+      }
       const projectId = input?.projectId ?? null;
       const rows = projectId
         ? await db.select().from(chatMessages).where(and(eq(chatMessages.userId, ctx.user.id), eq(chatMessages.projectId, projectId))).orderBy(chatMessages.createdAt).limit(40)
@@ -137,13 +164,22 @@ export const workspaceRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Workspace storage is currently unavailable.");
 
+      const existingSession = input.sessionId
+        ? (await db.select().from(chatSessions).where(and(eq(chatSessions.id, input.sessionId), eq(chatSessions.userId, ctx.user.id))).limit(1))[0]
+        : undefined;
+      if (input.sessionId && !existingSession) throw new Error("Conversation not found.");
+      const sessionProjectId = existingSession?.projectId ?? input.projectId ?? null;
+      const projectAccess = sessionProjectId ? await requireProjectAccess(ctx.user.id, sessionProjectId) : null;
+      const repository = sessionProjectId ? (await db.select({ fullName: githubRepositories.fullName, defaultBranch: githubRepositories.defaultBranch }).from(githubRepositories).where(and(eq(githubRepositories.userId, ctx.user.id), eq(githubRepositories.projectId, sessionProjectId))).limit(1))[0] : null;
+      const safeContext = buildSafeChatContext(projectAccess?.project ?? null, repository ?? null);
+      const sessionId = existingSession?.id ?? (await db.insert(chatSessions).values({ userId: ctx.user.id, projectId: sessionProjectId, title: input.content.slice(0, 80) }))[0].insertId;
       const priorMessages = await db.select().from(chatMessages)
-        .where(and(eq(chatMessages.userId, ctx.user.id), input.projectId ? eq(chatMessages.projectId, input.projectId) : isNull(chatMessages.projectId)))
+        .where(and(eq(chatMessages.userId, ctx.user.id), eq(chatMessages.sessionId, sessionId)))
         .orderBy(desc(chatMessages.createdAt))
         .limit(8);
       const chronological = [...priorMessages].reverse();
 
-      await db.insert(chatMessages).values({ userId: ctx.user.id, projectId: input.projectId ?? null, role: "user", content: input.content });
+      await db.insert(chatMessages).values({ userId: ctx.user.id, sessionId, projectId: sessionProjectId, role: "user", content: input.content });
       const { data: models } = await listLLMModels();
       const model = models.find((entry) => entry.id.startsWith("claude-"))?.id ?? models.find((entry) => entry.id.startsWith("gpt-"))?.id ?? models[0]?.id;
       const response = await invokeLLM({
@@ -151,7 +187,7 @@ export const workspaceRouter = router({
         messages: [
           {
             role: "system",
-            content: "You are SUBBY, an autonomous AI co-developer. Provide concise, practical coding guidance. When useful, state assumptions, propose an ordered plan, include focused code snippets, explain verification steps, and flag actions that need user approval. Never claim you executed tools, edited files, or deployed anything unless that was explicitly done by the application.",
+            content: buildSubbySystemPrompt(safeContext),
           },
           ...chronological.map((message) => ({ role: message.role as "user" | "assistant", content: message.content })),
           { role: "user", content: input.content },
@@ -160,9 +196,10 @@ export const workspaceRouter = router({
       const content = typeof response.choices[0]?.message?.content === "string"
         ? response.choices[0].message.content
         : "I could not generate a response. Please try again.";
-      const [result] = await db.insert(chatMessages).values({ userId: ctx.user.id, projectId: input.projectId ?? null, role: "assistant", content });
-      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "chat", title: "Asked SUBBY", detail: input.content.slice(0, 96) });
-      return { id: result.insertId, content };
+      const [result] = await db.insert(chatMessages).values({ userId: ctx.user.id, sessionId, projectId: sessionProjectId, role: "assistant", content });
+      await db.update(chatSessions).set({ title: existingSession?.title === "New conversation" ? input.content.slice(0, 80) : existingSession?.title ?? input.content.slice(0, 80) }).where(eq(chatSessions.id, sessionId));
+      await appendActivity(ctx.user.id, { projectId: sessionProjectId, kind: "chat", title: "Asked SUBBY", detail: input.content.slice(0, 96) });
+      return { id: result.insertId, sessionId, content };
     }),
 
   listFiles: protectedProcedure

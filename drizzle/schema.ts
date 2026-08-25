@@ -46,10 +46,20 @@ export const activityEvents = mysqlTable("activityEvents", {
 export const chatMessages = mysqlTable("chatMessages", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
+  sessionId: int("sessionId"),
   projectId: int("projectId"),
   role: mysqlEnum("role", ["user", "assistant"]).notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const chatSessions = mysqlTable("chatSessions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  projectId: int("projectId"),
+  title: varchar("title", { length: 140 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export const workspaceFiles = mysqlTable("workspaceFiles", {

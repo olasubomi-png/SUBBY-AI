@@ -26,9 +26,9 @@ import { Button } from "./ui/button";
 const brandLogo = "/manus-storage/subby-logo_b4152d51.png";
 
 const primaryNavigation = [
+  { label: "SUBBY Chat", path: "/chat", icon: Bot },
   { label: "Overview", path: "/", icon: LayoutDashboard },
   { label: "Projects", path: "/projects", icon: Boxes },
-  { label: "Co-developer", path: "/chat", icon: Bot },
   { label: "Agent tasks", path: "/agents", icon: Activity },
 ];
 

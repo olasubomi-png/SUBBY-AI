@@ -1,0 +1,29 @@
+import { describe, expect, it } from "vitest";
+import { buildSafeChatContext, buildSubbySystemPrompt } from "./chatContext";
+
+describe("buildSafeChatContext", () => {
+  it("includes project and repository metadata while excluding vault values", () => {
+    const context = buildSafeChatContext(
+      { name: "SUBBY", description: "AI developer workspace", status: "building" },
+      { fullName: "owner/repository", defaultBranch: "main" },
+    );
+
+    expect(context).toContain("Project: SUBBY");
+    expect(context).toContain("Linked repository: owner/repository");
+    expect(context).toContain("Project Vault values are not part of this context");
+    expect(context).not.toContain("DATABASE_PASSWORD");
+  });
+
+  it("passes only safe session context into the AI system prompt boundary", () => {
+    const safeContext = buildSafeChatContext(
+      { name: "Vegas", description: "Game backend", status: "building" },
+      { fullName: "owner/game", defaultBranch: "main" },
+    );
+    const prompt = buildSubbySystemPrompt(safeContext);
+
+    expect(prompt).toContain("Project: Vegas");
+    expect(prompt).toContain("Linked repository: owner/game");
+    expect(prompt).toContain("Never request, reveal, or infer Project Vault values");
+    expect(prompt).not.toContain("DATABASE_PASSWORD");
+  });
+});

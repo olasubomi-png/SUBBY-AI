@@ -34,3 +34,12 @@
 - [x] Capture the GitHub Actions workflow-dispatch validation response and identify its required inputs.
 - [x] Fix workflow dispatch and surface an actionable GitHub error when a workflow cannot be run manually.
 - [x] Add regression coverage, validate the workflow path, and checkpoint the GitHub Actions fix.
+- [x] Define the persistent conversation session model for the AI-first workspace.
+- [x] Add persisted conversation sessions, titles, and session-aware chat message storage.
+- [x] Build an AI-first chat workspace with a conversation sidebar, New chat control, project context selection, and retained history.
+- [x] Improve SUBBY’s AI context so project and repository-aware help is available without exposing Project Vault values.
+- [x] Inject safe project and linked-repository metadata into SUBBY AI conversations without accessing Project Vault values.
+- [x] Add session-context regression tests proving project metadata is included and secret values are excluded.
+- [x] Add unit coverage for SUBBY’s safe AI context and system prompt boundary.
+- [x] Add a router-level session-aware chat test that verifies the LLM request includes project and repository metadata but never reads Project Vault values.
+- [x] Add conversation-session tests, validate responsive chat behavior, and save an AI-first experience checkpoint.
