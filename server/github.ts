@@ -8,7 +8,11 @@ import { decryptProjectSecret, encryptProjectSecret } from "./projectSecrets";
 import { isGitHubOAuthConfigured } from "./githubConfig";
 import { sdk } from "./_core/sdk";
 
-const callbackUrl = "https://subbyai-nzrssmce.manus.space/api/github/callback";
+const defaultGitHubOAuthCallbackUrl = "https://subbyai-nzrssmce.manus.space/api/github/callback";
+export function getGitHubOAuthCallbackUrl(value = process.env.GITHUB_OAUTH_CALLBACK_URL) {
+  return value ?? defaultGitHubOAuthCallbackUrl;
+}
+export const githubOAuthCallbackUrl = getGitHubOAuthCallbackUrl();
 const githubApi = axios.create({ baseURL: "https://api.github.com", timeout: 20_000, headers: { Accept: "application/vnd.github+json", "User-Agent": "SUBBY-AI", "X-GitHub-Api-Version": "2022-11-28" } });
 
 type TokenResult = { access_token?: string; refresh_token?: string; expires_in?: number; error?: string; error_description?: string };
@@ -45,7 +49,7 @@ export async function beginGitHubConnection(userId: number) {
   await db.insert(githubOAuthStates).values({ userId, stateHash: hash(state), codeVerifier: verifier, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
   const url = new URL("https://github.com/login/oauth/authorize");
   url.searchParams.set("client_id", process.env.GITHUB_CLIENT_ID ?? "");
-  url.searchParams.set("redirect_uri", callbackUrl);
+  url.searchParams.set("redirect_uri", githubOAuthCallbackUrl);
   url.searchParams.set("scope", "repo workflow read:user offline_access");
   url.searchParams.set("state", state);
   url.searchParams.set("code_challenge", codeChallenge(verifier));
@@ -113,7 +117,7 @@ export async function registerGitHubOAuthRoutes(app: Express) {
       if (!record || record.expiresAt.getTime() < Date.now()) throw new Error("This GitHub connection request expired. Please try again.");
       callbackUserId = record.userId;
       await db.delete(githubOAuthStates).where(eq(githubOAuthStates.id, record.id));
-      const token = await exchangeToken({ code, redirect_uri: callbackUrl, code_verifier: record.codeVerifier });
+      const token = await exchangeToken({ code, redirect_uri: githubOAuthCallbackUrl, code_verifier: record.codeVerifier });
       const user = await githubApi.get<GithubUser>("/user", { headers: { Authorization: `Bearer ${token.access_token}` } });
       await saveConnection(record.userId, user.data.login, token);
       await db.insert(activityEvents).values({ userId: record.userId, projectId: null, kind: "workspace", title: "Connected GitHub account", detail: `@${user.data.login}` });

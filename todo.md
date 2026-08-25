@@ -136,3 +136,15 @@
 - [x] Audit tracked repository content for embedded secrets, credentials, and token-shaped values before finalizing GitHub publication safety; the only match is a runtime environment-variable reference in Map.tsx.
 - [x] Confirm ignore rules and pushed GitHub state exclude `.env` files and credential artifacts, then re-verify the remote repository; no `.env` path is tracked and the private remote main branch is verified.
 - [x] Inspect the pushed `server/projectSecrets.ts` and `server/projectSecrets.test.ts` files and document that they contain only application/test logic, not embedded secrets or credential material.
+
+# VPS Connection
+
+- [x] Confirm the VPS provider, public IP or hostname, SSH user, SSH port, and whether deployment should use Docker or a native Node process: 54.167.96.219, ubuntu, SSH 22, native Node.js.
+- [x] Confirm the production domain or whether the VPS should be accessed by IP initially: use the VPS IP for initial testing.
+- [ ] Prepare VPS deployment configuration without committing secrets or private keys.
+- [ ] Deploy SUBBY-AI to the VPS and configure automatic restart and reverse-proxy HTTPS behavior.
+- [ ] Verify application health, authentication, database connectivity, and GitHub workflows on the VPS.
+- [ ] Obtain the existing MySQL/TiDB connection details securely and configure the VPS environment without exposing the database password in chat or Git.
+- [ ] Clone the private `olasubomi-png/SUBBY-AI` repository onto the VPS using a dedicated read-only GitHub deploy key or GitHub App credential, never a committed token.
+- [ ] Make the GitHub OAuth callback URL configurable for the VPS while preserving the current Manus-domain default, then rebuild and redeploy the affected server bundle.
+- [ ] Make the production build script use the VPS-compatible non-minified Vite mode, then validate the resulting client and server artifacts.
