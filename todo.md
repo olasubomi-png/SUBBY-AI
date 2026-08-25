@@ -141,10 +141,14 @@
 
 - [x] Confirm the VPS provider, public IP or hostname, SSH user, SSH port, and whether deployment should use Docker or a native Node process: 54.167.96.219, ubuntu, SSH 22, native Node.js.
 - [x] Confirm the production domain or whether the VPS should be accessed by IP initially: use the VPS IP for initial testing.
-- [ ] Prepare VPS deployment configuration without committing secrets or private keys.
-- [ ] Deploy SUBBY-AI to the VPS and configure automatic restart and reverse-proxy HTTPS behavior.
+- [x] Prepare VPS deployment configuration without committing secrets or private keys: native Node.js systemd unit, root-only runtime configuration, non-minified build path, and Nginx reverse proxy.
+- [x] Deploy SUBBY-AI to the VPS and configure automatic restart and reverse-proxy HTTPS behavior: systemd enabled, Nginx active, and Let’s Encrypt renewal scheduled.
 - [ ] Verify application health, authentication, database connectivity, and GitHub workflows on the VPS.
-- [ ] Obtain the existing MySQL/TiDB connection details securely and configure the VPS environment without exposing the database password in chat or Git.
-- [ ] Clone the private `olasubomi-png/SUBBY-AI` repository onto the VPS using a dedicated read-only GitHub deploy key or GitHub App credential, never a committed token.
-- [ ] Make the GitHub OAuth callback URL configurable for the VPS while preserving the current Manus-domain default, then rebuild and redeploy the affected server bundle.
-- [ ] Make the production build script use the VPS-compatible non-minified Vite mode, then validate the resulting client and server artifacts.
+- [x] Obtain the existing MySQL/TiDB connection details securely and configure the VPS environment without exposing the database password in chat or Git; runtime values were transferred over SSH into a root-only configuration file.
+- [x] Clone the private `olasubomi-png/SUBBY-AI` repository onto the VPS using a dedicated read-only GitHub deploy key or GitHub App credential, never a committed token.
+- [x] Make the GitHub OAuth callback URL configurable for the VPS while preserving the current Manus-domain default, then rebuild and redeploy the affected server bundle.
+- [x] Make the production build script use the VPS-compatible non-minified Vite mode, then validate the resulting client and server artifacts.
+- [x] Add a separate Nginx host for SUBBY-AI on a nip.io hostname and obtain HTTPS without changing the existing `subby-lab` site.
+- [ ] Configure the VPS GitHub OAuth callback for the HTTPS host after the callback URL is registered in the GitHub OAuth application.
+- [x] Verify the VPS production service, external MySQL/TiDB connectivity, HTTP-to-HTTPS redirect, certificate, Nginx proxy, and public SUBBY application shell.
+- [ ] Complete authenticated Manus OAuth and GitHub OAuth workflow validation on the VPS after the GitHub OAuth application callback is registered for the HTTPS host.
