@@ -94,4 +94,4 @@
 - [x] Review the attached full-platform audit against the current SUBBY architecture and identify functional, mocked, and incomplete areas.
 - [x] Apply the selected safe audit slice: enrich real GitHub repository inspection with reusable project intelligence without replacing working features or simulating unavailable actions.
 - [x] Add regression coverage and verify the selected improvements across the real application workflow.
-- [ ] Publish a checkpoint documenting the completed repository-intelligence slice and remaining terminal, MCP, video, and persistent-job limitations.
+- [x] Publish a checkpoint documenting the completed repository-intelligence slice and remaining terminal, MCP, video, and persistent-job limitations.
