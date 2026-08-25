@@ -3,7 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Loader2, Send, User, Sparkles } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, type ReactNode } from "react";
 import { Streamdown } from "streamdown";
 
 /**
@@ -57,6 +57,12 @@ export type AIChatBoxProps = {
    * Click to send directly
    */
   suggestedPrompts?: string[];
+
+  /** Optional functional controls rendered before the composer textarea. */
+  composerActions?: ReactNode;
+
+  /** External tool actions can insert editable text into the composer. */
+  draft?: { id: number; content: string } | null;
 };
 
 /**
@@ -119,6 +125,8 @@ export function AIChatBox({
   height = "600px",
   emptyStateMessage = "Start a conversation with AI",
   suggestedPrompts,
+  composerActions,
+  draft,
 }: AIChatBoxProps) {
   const [input, setInput] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -129,25 +137,11 @@ export function AIChatBox({
   // Filter out system messages
   const displayMessages = messages.filter((msg) => msg.role !== "system");
 
-  // Calculate min-height for last assistant message to push user message to top
-  const [minHeightForLastMessage, setMinHeightForLastMessage] = useState(0);
-
   useEffect(() => {
-    if (containerRef.current && inputAreaRef.current) {
-      const containerHeight = containerRef.current.offsetHeight;
-      const inputHeight = inputAreaRef.current.offsetHeight;
-      const scrollAreaHeight = containerHeight - inputHeight;
-
-      // Reserve space for:
-      // - padding (p-4 = 32px top+bottom)
-      // - user message: 40px (item height) + 16px (margin-top from space-y-4) = 56px
-      // Note: margin-bottom is not counted because it naturally pushes the assistant message down
-      const userMessageReservedHeight = 56;
-      const calculatedHeight = scrollAreaHeight - 32 - userMessageReservedHeight;
-
-      setMinHeightForLastMessage(Math.max(0, calculatedHeight));
-    }
-  }, []);
+    if (!draft) return;
+    setInput(draft.content);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  }, [draft?.id]);
 
   // Scroll to bottom helper function with smooth animation
   const scrollToBottom = () => {
@@ -164,6 +158,10 @@ export function AIChatBox({
       });
     }
   };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [displayMessages.length, isLoading]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,28 +221,18 @@ export function AIChatBox({
             </div>
           </div>
         ) : (
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full min-w-0">
             <div className="flex flex-col space-y-4 p-4">
               {displayMessages.map((message, index) => {
-                // Apply min-height to last message only if NOT loading (when loading, the loading indicator gets it)
-                const isLastMessage = index === displayMessages.length - 1;
-                const shouldApplyMinHeight =
-                  isLastMessage && !isLoading && minHeightForLastMessage > 0;
-
                 return (
                   <div
                     key={index}
                     className={cn(
-                      "flex gap-3",
+                      "flex min-w-0 gap-3",
                       message.role === "user"
                         ? "justify-end items-start"
                         : "justify-start items-start"
                     )}
-                    style={
-                      shouldApplyMinHeight
-                        ? { minHeight: `${minHeightForLastMessage}px` }
-                        : undefined
-                    }
                   >
                     {message.role === "assistant" && (
                       <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
@@ -254,14 +242,14 @@ export function AIChatBox({
 
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2.5",
+                        "min-w-0 max-w-[calc(100%-2.75rem)] overflow-hidden break-words rounded-lg px-4 py-2.5 sm:max-w-[80%]",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
+                          : "border border-slate-700/50 bg-slate-900/95 text-slate-100"
                       )}
                     >
                       {message.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <div className="prose prose-sm dark:prose-invert prose-p:text-slate-100 prose-li:text-slate-100 prose-strong:text-white max-w-none break-words [&_code]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto">
                           <Streamdown>{message.content}</Streamdown>
                         </div>
                       ) : (
@@ -281,14 +269,7 @@ export function AIChatBox({
               })}
 
               {isLoading && (
-                <div
-                  className="flex items-start gap-3"
-                  style={
-                    minHeightForLastMessage > 0
-                      ? { minHeight: `${minHeightForLastMessage}px` }
-                      : undefined
-                  }
-                >
+                  <div className="flex items-start gap-3">
                   <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="size-4 text-primary" />
                   </div>
@@ -306,8 +287,9 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="flex gap-2 p-4 border-t bg-background/50 items-end"
+        className="relative flex gap-2 border-t bg-background/50 p-4 items-end"
       >
+        {composerActions}
         <Textarea
           ref={textareaRef}
           value={input}

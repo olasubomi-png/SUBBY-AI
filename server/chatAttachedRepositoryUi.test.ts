@@ -11,12 +11,15 @@ vi.mock("../client/src/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ workspace: { listChatSessions: { invalidate: vi.fn() }, chatHistory: { invalidate: vi.fn() }, overview: { invalidate: vi.fn() } } }),
     workspace: {
-      overview: { useQuery: () => ({ data: { projects: [{ id: 8, name: "Game", description: null, status: "building" }] } }) },
+      overview: { useQuery: () => ({ data: { projects: [{ id: 8, name: "Game", description: null, status: "building" }], tasks: [{ id: 5, projectId: 8, title: "Repair input", detail: "Resolve the composer layout", status: "queued" }] } }) },
       listChatSessions: { useQuery: () => ({ data: [mocks.session], isLoading: false }) },
       chatHistory: { useQuery: () => ({ data: [], isLoading: false }) },
+      listFiles: { useQuery: () => ({ data: [{ id: 7, path: "src/App.tsx", language: "typescript", content: "export default {}" }] }) },
       createChatSession: { useMutation: mocks.mutation },
       askSubby: { useMutation: mocks.mutation },
       attachRepositoryToChat: { useMutation: mocks.mutation },
+      createTask: { useMutation: mocks.mutation },
+      generateMediaImage: { useMutation: mocks.mutation },
     },
     github: {
       status: { useQuery: () => ({ data: { connection: { id: 2 } } }) },

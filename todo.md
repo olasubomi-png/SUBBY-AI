@@ -54,3 +54,8 @@
 - [x] Add attached-session branch-aware action coverage for inspect, propose, and test controls.
 - [x] Distinguish protected-branch write rejections from other GitHub 403 errors and provide a PR fallback only when appropriate.
 - [x] Add tests, validate the chat-first repository experience, and save a checkpoint.
+- [x] Move the chat attachment control into the message composer and replace the header-only attachment entry point.
+- [x] Add a functional composer tool menu for repository attachment, local-file attachment, project-file context, planning, tasks, and image generation.
+- [x] Make unavailable advanced tool categories explicit rather than presenting non-functional menu actions.
+- [x] Repair mobile chat sizing, scrolling, code-block wrapping, and composer safe-area spacing so all message text remains readable.
+- [x] Add regression coverage, validate the composer menu and mobile chat layout, and publish the upgrade.
