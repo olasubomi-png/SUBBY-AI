@@ -1,0 +1,1 @@
+ALTER TABLE `chatSessions` ADD `repositoryId` int;

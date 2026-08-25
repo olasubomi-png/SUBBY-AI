@@ -57,6 +57,8 @@ export const chatSessions = mysqlTable("chatSessions", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   projectId: int("projectId"),
+  repositoryId: int("repositoryId"),
+  repositoryBranch: varchar("repositoryBranch", { length: 255 }),
   title: varchar("title", { length: 140 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

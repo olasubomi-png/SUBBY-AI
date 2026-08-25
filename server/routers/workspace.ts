@@ -6,6 +6,8 @@ import { invokeLLM, listLLMModels } from "../_core/llm";
 import { generateImage } from "../_core/imageGeneration";
 import { encryptProjectSecret, isProjectVaultConfigured } from "../projectSecrets";
 import { buildSafeChatContext, buildSubbySystemPrompt } from "../chatContext";
+import { selectRepositoryBranch } from "../chatRepository";
+import { listGitHubRepositoryBranches } from "../github";
 import { protectedProcedure, router } from "../_core/trpc";
 
 const projectStatus = z.enum(["planning", "building", "review", "paused"]);
@@ -140,6 +142,24 @@ export const workspaceRouter = router({
       return { id: result.insertId, projectId, title };
     }),
 
+  attachRepositoryToChat: protectedProcedure
+    .input(z.object({ sessionId: z.number().int().positive(), projectId: z.number().int().positive(), fullName: z.string().trim().min(3).max(300), branch: z.string().trim().min(1).max(255) }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Workspace storage is currently unavailable.");
+      const [session] = await db.select().from(chatSessions).where(and(eq(chatSessions.id, input.sessionId), eq(chatSessions.userId, ctx.user.id))).limit(1);
+      if (!session) throw new Error("Conversation not found.");
+      await requireProjectAccess(ctx.user.id, input.projectId);
+      const [repository] = await db.select().from(githubRepositories).where(and(eq(githubRepositories.userId, ctx.user.id), eq(githubRepositories.projectId, input.projectId), eq(githubRepositories.fullName, input.fullName))).limit(1);
+      if (!repository) throw new Error("Link this repository to the selected project before attaching it to chat.");
+      const branches = await listGitHubRepositoryBranches(ctx.user.id, repository.fullName);
+      const branch = selectRepositoryBranch(branches, input.branch, repository.defaultBranch);
+      if (branch !== input.branch) throw new Error("The selected branch no longer exists on GitHub. Refresh the repository branches and select an available branch.");
+      await db.update(chatSessions).set({ projectId: input.projectId, repositoryId: repository.id, repositoryBranch: branch }).where(eq(chatSessions.id, input.sessionId));
+      await appendActivity(ctx.user.id, { projectId: input.projectId, kind: "chat", title: "Attached repository to chat", detail: `${repository.fullName} · ${branch}` });
+      return { repositoryId: repository.id, fullName: repository.fullName, branch };
+    }),
+
   chatHistory: protectedProcedure
     .input(z.object({ sessionId: z.number().int().positive().optional(), projectId: z.number().int().positive().nullable().optional() }).optional())
     .query(async ({ ctx, input }) => {
@@ -170,8 +190,8 @@ export const workspaceRouter = router({
       if (input.sessionId && !existingSession) throw new Error("Conversation not found.");
       const sessionProjectId = existingSession?.projectId ?? input.projectId ?? null;
       const projectAccess = sessionProjectId ? await requireProjectAccess(ctx.user.id, sessionProjectId) : null;
-      const repository = sessionProjectId ? (await db.select({ fullName: githubRepositories.fullName, defaultBranch: githubRepositories.defaultBranch }).from(githubRepositories).where(and(eq(githubRepositories.userId, ctx.user.id), eq(githubRepositories.projectId, sessionProjectId))).limit(1))[0] : null;
-      const safeContext = buildSafeChatContext(projectAccess?.project ?? null, repository ?? null);
+      const repository = sessionProjectId ? (await db.select({ fullName: githubRepositories.fullName, defaultBranch: githubRepositories.defaultBranch }).from(githubRepositories).where(and(eq(githubRepositories.userId, ctx.user.id), existingSession?.repositoryId ? eq(githubRepositories.id, existingSession.repositoryId) : eq(githubRepositories.projectId, sessionProjectId))).limit(1))[0] : null;
+      const safeContext = buildSafeChatContext(projectAccess?.project ?? null, repository ? { ...repository, defaultBranch: existingSession?.repositoryBranch ?? repository.defaultBranch } : null);
       const sessionId = existingSession?.id ?? (await db.insert(chatSessions).values({ userId: ctx.user.id, projectId: sessionProjectId, title: input.content.slice(0, 80) }))[0].insertId;
       const priorMessages = await db.select().from(chatMessages)
         .where(and(eq(chatMessages.userId, ctx.user.id), eq(chatMessages.sessionId, sessionId)))

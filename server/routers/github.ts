@@ -2,7 +2,7 @@ import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { activityEvents, githubConnections, githubRepositories, projects } from "../../drizzle/schema";
 import { getDb } from "../db";
-import { beginGitHubConnection, getGitHubConnection, getProjectRepository, githubRequest, type GithubRepository } from "../github";
+import { beginGitHubConnection, getGitHubConnection, getProjectRepository, githubRequest, listGitHubRepositoryBranches, type GithubRepository } from "../github";
 import { isGitHubOAuthConfigured } from "../githubConfig";
 import { supportsManualDispatch } from "../githubWorkflow";
 import { invokeLLM, listLLMModels } from "../_core/llm";
@@ -11,10 +11,10 @@ import { protectedProcedure, router } from "../_core/trpc";
 const projectInput = z.object({ projectId: z.number().int().positive() });
 const repositoryPath = (fullName: string) => fullName.split("/").map(encodeURIComponent).join("/");
 
-async function repositoryText(userId: number, projectId: number, path: string) {
+async function repositoryText(userId: number, projectId: number, path: string, branch?: string) {
   const repository = await getProjectRepository(userId, projectId);
   if (!repository) throw new Error("Select a repository for this project first.");
-  const file = await githubRequest<{ content?: string; encoding?: string; size?: number; name: string; sha?: string }>(userId, { url: `/repos/${repositoryPath(repository.fullName)}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(repository.defaultBranch)}` });
+  const file = await githubRequest<{ content?: string; encoding?: string; size?: number; name: string; sha?: string }>(userId, { url: `/repos/${repositoryPath(repository.fullName)}/contents/${path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(branch ?? repository.defaultBranch)}` });
   if (file.encoding !== "base64" || !file.content || (file.size ?? 0) > 100_000) throw new Error("This file is not a supported text file for inspection.");
   return { repository, sha: file.sha, content: Buffer.from(file.content.replace(/\n/g, ""), "base64").toString("utf8") };
 }
@@ -54,6 +54,10 @@ export const githubRouter = router({
     return repositories.map((repo) => ({ id: repo.id, fullName: repo.full_name, name: repo.name, owner: repo.owner.login, private: repo.private, defaultBranch: repo.default_branch, updatedAt: repo.updated_at }));
   }),
 
+  listRepositoryBranches: protectedProcedure
+    .input(z.object({ fullName: z.string().trim().regex(/^[^/]+\/[^/]+$/) }))
+    .query(async ({ ctx, input }) => listGitHubRepositoryBranches(ctx.user.id, input.fullName)),
+
   bindRepository: protectedProcedure
     .input(z.object({ projectId: z.number().int().positive(), fullName: z.string().trim().regex(/^[^/]+\/[^/]+$/) }))
     .mutation(async ({ ctx, input }) => {
@@ -68,29 +72,30 @@ export const githubRouter = router({
     }),
 
   repositoryContext: protectedProcedure
-    .input(projectInput)
+    .input(projectInput.extend({ branch: z.string().trim().min(1).max(255).optional() }))
     .query(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
       const repository = await getProjectRepository(ctx.user.id, input.projectId);
       if (!repository) return { repository: null, files: [] as string[] };
-      const tree = await githubRequest<{ tree: { path: string; type: string; size?: number }[] }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/git/trees/${encodeURIComponent(repository.defaultBranch)}?recursive=1` });
+      const branch = input.branch ?? repository.defaultBranch;
+      const tree = await githubRequest<{ tree: { path: string; type: string; size?: number }[] }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/git/trees/${encodeURIComponent(branch)}?recursive=1` });
       const files = tree.tree.filter((entry) => entry.type === "blob" && (entry.size ?? 0) <= 200_000).map((entry) => entry.path).slice(0, 250);
-      return { repository: { id: repository.id, fullName: repository.fullName, defaultBranch: repository.defaultBranch, private: repository.isPrivate === 1 }, files };
+      return { repository: { id: repository.id, fullName: repository.fullName, defaultBranch: branch, private: repository.isPrivate === 1 }, files };
     }),
 
   readRepositoryFile: protectedProcedure
-    .input(z.object({ projectId: z.number().int().positive(), path: z.string().trim().min(1).max(500) }))
+    .input(z.object({ projectId: z.number().int().positive(), path: z.string().trim().min(1).max(500), branch: z.string().trim().min(1).max(255).optional() }))
     .query(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
-      const file = await repositoryText(ctx.user.id, input.projectId, input.path);
+      const file = await repositoryText(ctx.user.id, input.projectId, input.path, input.branch);
       return { path: input.path, content: file.content };
     }),
 
   inspectFile: protectedProcedure
-    .input(z.object({ projectId: z.number().int().positive(), path: z.string().trim().min(1).max(500), question: z.string().trim().min(4).max(1000).default("Review this file for correctness, risks, and actionable improvements.") }))
+    .input(z.object({ projectId: z.number().int().positive(), path: z.string().trim().min(1).max(500), branch: z.string().trim().min(1).max(255).optional(), question: z.string().trim().min(4).max(1000).default("Review this file for correctness, risks, and actionable improvements.") }))
     .mutation(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
-      const file = await repositoryText(ctx.user.id, input.projectId, input.path);
+      const file = await repositoryText(ctx.user.id, input.projectId, input.path, input.branch);
       const { data: models } = await listLLMModels();
       const model = models.find((entry) => entry.id.startsWith("claude-"))?.id ?? models.find((entry) => entry.id.startsWith("gpt-"))?.id ?? models[0]?.id;
       const response = await invokeLLM({ model, messages: [{ role: "system", content: "You are SUBBY, a senior software engineer. Review only the supplied repository file. Give concise, actionable findings with severity, exact evidence, and verification steps. Do not claim that you ran tests or changed code." }, { role: "user", content: `Question: ${input.question}\n\nFile: ${input.path}\n\n\`\`\`\n${file.content}\n\`\`\`` }] });
@@ -99,10 +104,10 @@ export const githubRouter = router({
     }),
 
   proposeFileFix: protectedProcedure
-    .input(z.object({ projectId: z.number().int().positive(), path: z.string().trim().min(1).max(500), instruction: z.string().trim().min(6).max(1500) }))
+    .input(z.object({ projectId: z.number().int().positive(), path: z.string().trim().min(1).max(500), branch: z.string().trim().min(1).max(255).optional(), instruction: z.string().trim().min(6).max(1500) }))
     .mutation(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
-      const file = await repositoryText(ctx.user.id, input.projectId, input.path);
+      const file = await repositoryText(ctx.user.id, input.projectId, input.path, input.branch);
       const { data: models } = await listLLMModels();
       const model = models.find((entry) => entry.id.startsWith("claude-"))?.id ?? models.find((entry) => entry.id.startsWith("gpt-"))?.id ?? models[0]?.id;
       const response = await invokeLLM({ model, response_format: { type: "json_schema", json_schema: { name: "subby_file_fix", strict: true, schema: { type: "object", properties: { summary: { type: "string" }, commitMessage: { type: "string" }, content: { type: "string" } }, required: ["summary", "commitMessage", "content"], additionalProperties: false } } }, messages: [{ role: "system", content: "You are SUBBY, a careful senior software engineer. Return a safe targeted full-file replacement for the requested change. Preserve unrelated behavior. Never include credentials or secrets." }, { role: "user", content: `Change request: ${input.instruction}\n\nPath: ${input.path}\n\nCurrent file:\n\`\`\`\n${file.content}\n\`\`\`` }] });
@@ -114,7 +119,7 @@ export const githubRouter = router({
     }),
 
   listWorkflows: protectedProcedure
-    .input(projectInput)
+    .input(projectInput.extend({ branch: z.string().trim().min(1).max(255).optional() }))
     .query(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
       const repository = await getProjectRepository(ctx.user.id, input.projectId);
@@ -122,7 +127,7 @@ export const githubRouter = router({
       const data = await githubRequest<{ workflows: { id: number; name: string; path: string; state: string }[] }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/actions/workflows?per_page=50` });
       return Promise.all(data.workflows.slice(0, 50).map(async (workflow) => {
         try {
-          const source = await githubRequest<{ content?: string; encoding?: string }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/contents/${workflow.path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(repository.defaultBranch)}` });
+          const source = await githubRequest<{ content?: string; encoding?: string }>(ctx.user.id, { url: `/repos/${repositoryPath(repository.fullName)}/contents/${workflow.path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(input.branch ?? repository.defaultBranch)}` });
           const yaml = source.encoding === "base64" && source.content ? Buffer.from(source.content.replace(/\n/g, ""), "base64").toString("utf8") : "";
           return { id: workflow.id, name: workflow.name, path: workflow.path, state: workflow.state, dispatchable: supportsManualDispatch(yaml) };
         } catch {
@@ -132,13 +137,13 @@ export const githubRouter = router({
     }),
 
   dispatchWorkflow: protectedProcedure
-    .input(z.object({ projectId: z.number().int().positive(), workflowId: z.number().int().positive(), confirmed: z.literal(true) }))
+    .input(z.object({ projectId: z.number().int().positive(), workflowId: z.number().int().positive(), branch: z.string().trim().min(1).max(255).optional(), confirmed: z.literal(true) }))
     .mutation(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
       const repository = await getProjectRepository(ctx.user.id, input.projectId);
       if (!repository) throw new Error("Select a repository for this project first.");
       try {
-        await githubRequest(ctx.user.id, { method: "POST", url: `/repos/${repositoryPath(repository.fullName)}/actions/workflows/${input.workflowId}/dispatches`, data: { ref: repository.defaultBranch } });
+        await githubRequest(ctx.user.id, { method: "POST", url: `/repos/${repositoryPath(repository.fullName)}/actions/workflows/${input.workflowId}/dispatches`, data: { ref: input.branch ?? repository.defaultBranch } });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Workflow dispatch failed.";
         if (message.includes("does not have 'workflow_dispatch'")) throw new Error("This workflow cannot be run manually. Add a workflow_dispatch trigger to its GitHub Actions YAML file, commit it, then retry.");
@@ -160,7 +165,18 @@ export const githubRouter = router({
       await githubRequest(ctx.user.id, { method: "PUT", url: `/repos/${repositoryPath(current.repository.fullName)}/contents/${input.path.split("/").map(encodeURIComponent).join("/")}`, data: { message: input.commitMessage, content: Buffer.from(input.content, "utf8").toString("base64"), sha: current.sha, branch } });
       const pull = await githubRequest<{ html_url: string; number: number }>(ctx.user.id, { method: "POST", url: `/repos/${repositoryPath(current.repository.fullName)}/pulls`, data: { title: input.commitMessage, head: branch, base: current.repository.defaultBranch, body: `## SUBBY proposal\n\n${input.summary}\n\nCreated only after explicit user approval in SUBBY.` } });
       await recordGitHubActivity(ctx.user.id, input.projectId, "Created GitHub pull request", `#${pull.number} · ${current.repository.fullName}`);
-      return { url: pull.html_url, number: pull.number, branch };
+      return { number: pull.number, url: pull.html_url, branch };
+    }),
+
+  commitApprovedChange: protectedProcedure
+    .input(z.object({ projectId: z.number().int().positive(), path: z.string().trim().min(1).max(500), branch: z.string().trim().min(1).max(255), content: z.string().max(100_000), commitMessage: z.string().trim().min(4).max(200), confirmed: z.literal(true) }))
+    .mutation(async ({ ctx, input }) => {
+      await requireProject(ctx.user.id, input.projectId);
+      const current = await repositoryText(ctx.user.id, input.projectId, input.path, input.branch);
+      if (!current.sha) throw new Error("GitHub did not provide the current file version.");
+      await githubRequest(ctx.user.id, { method: "PUT", url: `/repos/${repositoryPath(current.repository.fullName)}/contents/${input.path.split("/").map(encodeURIComponent).join("/")}`, data: { message: input.commitMessage, content: Buffer.from(input.content, "utf8").toString("base64"), sha: current.sha, branch: input.branch } });
+      await recordGitHubActivity(ctx.user.id, input.projectId, "Committed approved SUBBY change", `${current.repository.fullName} · ${input.branch} · ${input.path}`);
+      return { success: true, branch: input.branch };
     }),
 
   operationHistory: protectedProcedure

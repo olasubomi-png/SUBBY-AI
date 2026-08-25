@@ -43,3 +43,14 @@
 - [x] Add unit coverage for SUBBY’s safe AI context and system prompt boundary.
 - [x] Add a router-level session-aware chat test that verifies the LLM request includes project and repository metadata but never reads Project Vault values.
 - [x] Add conversation-session tests, validate responsive chat behavior, and save an AI-first experience checkpoint.
+- [x] Define safe boundaries for repository-attached chat, remote inspection, workflow-based testing, change preparation, and explicit write approval.
+- [x] Redirect signed-in users from the root route to SUBBY Chat and make chat the primary landing experience.
+- [x] Add a chat attachment control for selecting a connected GitHub repository and branch as active conversation context.
+- [x] Persist an explicitly selected repository branch on each chat session and use it for AI context and repository actions.
+- [x] Add branch attachment tests and validate branch-aware repository controls in chat.
+- [x] Add repository inspection, test-request, error-diagnosis, and change-plan actions to the chat workspace.
+- [x] Add an explicit approval flow for committing prepared changes and updating protected repository branches.
+- [x] Add session repository-attachment regression coverage for persisted repository and branch context.
+- [x] Add attached-session branch-aware action coverage for inspect, propose, and test controls.
+- [x] Distinguish protected-branch write rejections from other GitHub 403 errors and provide a PR fallback only when appropriate.
+- [x] Add tests, validate the chat-first repository experience, and save a checkpoint.

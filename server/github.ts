@@ -80,8 +80,23 @@ export async function githubRequest<T>(userId: number, config: { method?: "GET" 
       const data = error.response.data as { message?: string } | undefined;
       throw new Error(data?.message ? `GitHub rejected this action: ${data.message}` : "GitHub rejected this action. The workflow may not allow manual dispatch.");
     }
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      const data = error.response.data as { message?: string } | undefined;
+      const message = data?.message ?? "GitHub denied this write operation.";
+      if (isProtectedBranchRejection(message)) throw new Error(`GitHub blocked the protected branch update: ${message}. Use the approved pull-request option instead, or update the repository’s branch protection rules.`);
+      throw new Error(`GitHub denied this operation: ${message}. Check the connected account permissions and repository access, then retry.`);
+    }
     throw error;
   }
+}
+
+export async function listGitHubRepositoryBranches(userId: number, fullName: string) {
+  const branches = await githubRequest<{ name: string }[]>(userId, { url: `/repos/${fullName.split("/").map(encodeURIComponent).join("/")}/branches?per_page=100` });
+  return branches.map((branch) => branch.name);
+}
+
+export function isProtectedBranchRejection(message: string) {
+  return /(protected branch|branch protection|protected refs|required status checks|protected ref)/i.test(message);
 }
 
 export async function registerGitHubOAuthRoutes(app: Express) {

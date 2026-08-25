@@ -17,7 +17,8 @@ import Workspace from "./pages/Workspace";
 
 function Router() {
   return <DashboardLayout><Switch>
-    <Route path="/" component={Home} />
+    <Route path="/" component={Chat} />
+    <Route path="/overview" component={Home} />
     <Route path="/projects" component={Projects} />
     <Route path="/chat" component={Chat} />
     <Route path="/agents" component={Agents} />
