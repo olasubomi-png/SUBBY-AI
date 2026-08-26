@@ -85,6 +85,13 @@
       "when": 1787684969652,
       "tag": "0011_new_justin_hammer",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1787736450862,
+      "tag": "0012_lonely_steel_serpent",
+      "breakpoints": true
     }
   ]
 }

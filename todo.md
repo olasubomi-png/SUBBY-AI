@@ -152,3 +152,20 @@
 - [ ] Configure the VPS GitHub OAuth callback for the HTTPS host after the callback URL is registered in the GitHub OAuth application.
 - [x] Verify the VPS production service, external MySQL/TiDB connectivity, HTTP-to-HTTPS redirect, certificate, Nginx proxy, and public SUBBY application shell.
 - [ ] Complete authenticated Manus OAuth and GitHub OAuth workflow validation on the VPS after the GitHub OAuth application callback is registered for the HTTPS host.
+
+# VPS Primary Host Correction
+
+- [ ] Replace the unsupported nip.io OAuth origin with a real domain allowed by the Manus OAuth project.
+- [ ] Point the approved domain’s DNS A record to `54.167.96.219` and issue HTTPS on the VPS.
+- [ ] Update the Manus OAuth and GitHub OAuth callback registrations for the approved domain, then validate authenticated sign-in and GitHub repository access.
+- [ ] Verify that `subby.kdns.fr` resolves to `54.167.96.219` before changing the VPS reverse proxy or OAuth callback configuration.
+
+# Dual Authentication Upgrade
+
+- [x] Audit the current Manus auth, user schema, session cookie, and GitHub repository OAuth boundaries.
+- [x] Add secure self-hosted account fields and session records without exposing passwords or tokens.
+- [x] Implement email/password registration, login, logout, and session restoration with scrypt hashing and signed sessions.
+- [x] Implement GitHub OAuth sign-in on the VPS while keeping repository connection OAuth separate through shared, intent-bound OAuth state.
+- [x] Add login/register UI with both GitHub and email/password options and clear error states.
+- [ ] Migrate the VPS runtime, database schema, and HTTPS host to the dual-auth build.
+- [ ] Run migrations, TypeScript checks, Vitest coverage, and authenticated VPS verification.

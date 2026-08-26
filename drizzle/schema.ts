@@ -12,6 +12,24 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+export const passwordCredentials = mysqlTable("passwordCredentials", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const githubAuthAccounts = mysqlTable("githubAuthAccounts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  githubId: varchar("githubId", { length: 64 }).notNull().unique(),
+  githubLogin: varchar("githubLogin", { length: 120 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const projects = mysqlTable("projects", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -202,9 +220,10 @@ export const githubConnections = mysqlTable("githubConnections", {
 
 export const githubOAuthStates = mysqlTable("githubOAuthStates", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+  userId: int("userId"),
   stateHash: varchar("stateHash", { length: 128 }).notNull().unique(),
   codeVerifier: varchar("codeVerifier", { length: 160 }).notNull(),
+  intent: mysqlEnum("intent", ["connection", "login"]).default("connection").notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

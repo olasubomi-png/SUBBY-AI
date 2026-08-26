@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, githubAuthAccounts, passwordCredentials, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -87,6 +87,50 @@ export async function getUserByOpenId(openId: string) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [credential] = await db.select().from(passwordCredentials).where(eq(passwordCredentials.email, email)).limit(1);
+  return credential ? getUserById(credential.userId) : undefined;
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return user;
+}
+
+export async function getPasswordCredential(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [credential] = await db.select().from(passwordCredentials).where(eq(passwordCredentials.email, email)).limit(1);
+  return credential;
+}
+
+export async function getUserByGitHubId(githubId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [account] = await db.select().from(githubAuthAccounts).where(eq(githubAuthAccounts.githubId, githubId)).limit(1);
+  return account ? getUserById(account.userId) : undefined;
+}
+
+export async function createLocalUser(input: { openId: string; name: string; email: string; passwordHash: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Workspace storage is currently unavailable.");
+  await db.insert(users).values({ openId: input.openId, name: input.name, email: input.email, loginMethod: "password", lastSignedIn: new Date() });
+  const user = await getUserByOpenId(input.openId);
+  if (!user) throw new Error("Account could not be created.");
+  await db.insert(passwordCredentials).values({ userId: user.id, email: input.email, passwordHash: input.passwordHash });
+  return user;
+}
+
+export async function linkGitHubAccount(input: { userId: number; githubId: string; githubLogin: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Workspace storage is currently unavailable.");
+  await db.insert(githubAuthAccounts).values(input).onDuplicateKeyUpdate({ set: { userId: input.userId, githubLogin: input.githubLogin } });
 }
 
 // TODO: add feature queries here as your schema grows.

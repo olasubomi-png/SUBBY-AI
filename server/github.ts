@@ -2,11 +2,14 @@ import { createHash, randomBytes } from "node:crypto";
 import axios from "axios";
 import type { Express, Request } from "express";
 import { and, eq } from "drizzle-orm";
+import { parse as parseCookieHeader } from "cookie";
 import { activityEvents, githubConnections, githubOAuthStates, githubRepositories } from "../drizzle/schema";
-import { getDb } from "./db";
+import { getDb, getUserByEmail, getUserByGitHubId, getUserByOpenId, linkGitHubAccount, upsertUser } from "./db";
 import { decryptProjectSecret, encryptProjectSecret } from "./projectSecrets";
 import { isGitHubOAuthConfigured } from "./githubConfig";
 import { sdk } from "./_core/sdk";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { getSessionCookieOptions } from "./_core/cookies";
 
 const defaultGitHubOAuthCallbackUrl = "https://subbyai-nzrssmce.manus.space/api/github/callback";
 export function getGitHubOAuthCallbackUrl(value = process.env.GITHUB_OAUTH_CALLBACK_URL) {
@@ -40,22 +43,30 @@ async function saveConnection(userId: number, login: string, token: TokenResult)
     .onDuplicateKeyUpdate({ set: { githubLogin: login, tokenCiphertext: access.ciphertext, tokenIv: access.iv, tokenAuthTag: access.authTag, refreshCiphertext: refresh?.ciphertext ?? null, refreshIv: refresh?.iv ?? null, refreshAuthTag: refresh?.authTag ?? null, expiresAt } });
 }
 
-export async function beginGitHubConnection(userId: number) {
+async function createGitHubAuthorizationUrl(input: { userId: number | null; intent: "connection" | "login"; scope: string }) {
   if (!isGitHubOAuthConfigured()) throw new Error("GitHub OAuth is not configured yet.");
   const db = await getDb();
   if (!db) throw new Error("Workspace storage is currently unavailable.");
   const state = base64Url(randomBytes(32));
   const verifier = base64Url(randomBytes(48));
-  await db.insert(githubOAuthStates).values({ userId, stateHash: hash(state), codeVerifier: verifier, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
+  await db.insert(githubOAuthStates).values({ userId: input.userId, intent: input.intent, stateHash: hash(state), codeVerifier: verifier, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
   const url = new URL("https://github.com/login/oauth/authorize");
   url.searchParams.set("client_id", process.env.GITHUB_CLIENT_ID ?? "");
   url.searchParams.set("redirect_uri", githubOAuthCallbackUrl);
-  url.searchParams.set("scope", "repo workflow read:user offline_access");
+  url.searchParams.set("scope", input.scope);
   url.searchParams.set("state", state);
   url.searchParams.set("code_challenge", codeChallenge(verifier));
   url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("prompt", "select_account");
   return url.toString();
+}
+
+export async function beginGitHubSignIn() {
+  return createGitHubAuthorizationUrl({ userId: null, intent: "login", scope: "read:user user:email" });
+}
+
+export async function beginGitHubConnection(userId: number) {
+  return createGitHubAuthorizationUrl({ userId, intent: "connection", scope: "repo workflow read:user offline_access" });
 }
 
 export async function githubAccessToken(userId: number) {
@@ -104,6 +115,19 @@ export function isProtectedBranchRejection(message: string) {
 }
 
 export async function registerGitHubOAuthRoutes(app: Express) {
+  app.get("/api/auth/github", async (_req: Request, res) => {
+    try {
+      const url = await beginGitHubSignIn();
+      const state = new URL(url).searchParams.get("state");
+      if (!state) throw new Error("GitHub sign-in state could not be created.");
+      res.cookie("github_oauth_state", state, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 10 * 60 * 1000 });
+      res.redirect(url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "GitHub sign-in could not be started.";
+      res.redirect(`/?auth_error=${encodeURIComponent(message.slice(0, 140))}`);
+    }
+  });
+
   app.get("/api/github/callback", async (req: Request, res) => {
     let callbackUserId: number | null = null;
     const sessionUser = await sdk.authenticateRequest(req).catch(() => null);
@@ -114,18 +138,43 @@ export async function registerGitHubOAuthRoutes(app: Express) {
       const db = await getDb();
       if (!db) throw new Error("Workspace storage is currently unavailable.");
       const [record] = await db.select().from(githubOAuthStates).where(eq(githubOAuthStates.stateHash, hash(state))).limit(1);
-      if (!record || record.expiresAt.getTime() < Date.now()) throw new Error("This GitHub connection request expired. Please try again.");
-      callbackUserId = record.userId;
+      if (!record || record.expiresAt.getTime() < Date.now()) throw new Error("This GitHub authorization request expired. Please try again.");
       await db.delete(githubOAuthStates).where(eq(githubOAuthStates.id, record.id));
       const token = await exchangeToken({ code, redirect_uri: githubOAuthCallbackUrl, code_verifier: record.codeVerifier });
-      const user = await githubApi.get<GithubUser>("/user", { headers: { Authorization: `Bearer ${token.access_token}` } });
-      await saveConnection(record.userId, user.data.login, token);
-      await db.insert(activityEvents).values({ userId: record.userId, projectId: null, kind: "workspace", title: "Connected GitHub account", detail: `@${user.data.login}` });
+      const userResponse = await githubApi.get<GithubUser & { id: number; name?: string; email?: string }>("/user", { headers: { Authorization: `Bearer ${token.access_token}` } });
+
+      if (record.intent === "login") {
+        const githubUser = userResponse.data;
+        let email = githubUser.email ?? null;
+        if (!email && token.access_token) {
+          const emails = await githubApi.get<Array<{ email: string; primary: boolean; verified: boolean }>>("/user/emails", { headers: { Authorization: `Bearer ${token.access_token}` } });
+          email = emails.data.find((item) => item.primary && item.verified)?.email ?? emails.data.find((item) => item.verified)?.email ?? null;
+        }
+        let user = await getUserByGitHubId(String(githubUser.id));
+        if (!user && email) user = await getUserByEmail(email.toLowerCase());
+        if (!user) {
+          await upsertUser({ openId: `github_${githubUser.id}`, name: githubUser.name ?? githubUser.login, email, loginMethod: "github", lastSignedIn: new Date() });
+          user = await getUserByOpenId(`github_${githubUser.id}`);
+        }
+        if (!user) throw new Error("GitHub account could not be created.");
+        await linkGitHubAccount({ userId: user.id, githubId: String(githubUser.id), githubLogin: githubUser.login });
+        await upsertUser({ openId: user.openId, name: githubUser.name ?? githubUser.login, email, loginMethod: "github", lastSignedIn: new Date() });
+        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? githubUser.login, expiresInMs: ONE_YEAR_MS });
+        res.clearCookie("github_oauth_state", { path: "/", secure: true, sameSite: "lax" });
+        res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(req), maxAge: ONE_YEAR_MS });
+        res.redirect("/");
+        return;
+      }
+
+      if (!record.userId) throw new Error("This GitHub OAuth state is missing its repository owner.");
+      callbackUserId = record.userId;
+      await saveConnection(record.userId, userResponse.data.login, token);
+      await db.insert(activityEvents).values({ userId: record.userId, projectId: null, kind: "workspace", title: "Connected GitHub account", detail: `@${userResponse.data.login}` });
       res.redirect("/github?connected=1");
     } catch (error) {
       const message = error instanceof Error ? error.message : "GitHub connection failed.";
       const historyUserId = callbackUserId ?? sessionUser?.id ?? null;
-      if (historyUserId) {
+      if (historyUserId !== null) {
         const db = await getDb();
         if (db) await db.insert(activityEvents).values({ userId: historyUserId, projectId: null, kind: "workspace", title: "GitHub connection failed", detail: message.slice(0, 180) });
       }

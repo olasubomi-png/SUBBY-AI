@@ -1,4 +1,3 @@
-import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Activity,
@@ -57,6 +56,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileOpen, setMobileOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("drawer") === "1");
   const [drawerSearch, setDrawerSearch] = useState("");
   const createDrawerChat = trpc.workspace.createChatSession.useMutation({ onSuccess: (session) => navigate(`/chat?session=${session.id}`) });
+  const utils = trpc.useUtils();
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const loginMutation = trpc.auth.login.useMutation({ onSuccess: (nextUser) => utils.auth.me.setData(undefined, nextUser) });
+  const registerMutation = trpc.auth.register.useMutation({ onSuccess: (nextUser) => utils.auth.me.setData(undefined, nextUser) });
+  const authMutation = authMode === "login" ? loginMutation : registerMutation;
 
   if (loading) {
     return (
@@ -67,6 +74,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!user) {
+    const submitAuth = (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (authMode === "login") loginMutation.mutate({ email: authEmail, password: authPassword });
+      else registerMutation.mutate({ name: authName, email: authEmail, password: authPassword });
+    };
     return (
       <main className="subby-auth-shell">
         <div className="subby-auth-grid" />
@@ -74,10 +86,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <img src={brandLogo} alt="SUBBY" className="h-20 w-20 object-contain" />
           <p className="eyebrow">SUBBY WORKSPACE</p>
           <h1 id="sign-in-title">Your autonomous development workspace is ready.</h1>
-          <p>Sign in to create projects, manage agent tasks, and work with your AI co-developer in a personal, persisted workspace.</p>
-          <Button onClick={() => startLogin()} className="subby-primary-button w-full">
-            Sign in to SUBBY <ChevronRight className="size-4" />
-          </Button>
+          <p>Use GitHub or a secure local account to enter your AI-first developer workspace.</p>
+          <Button type="button" onClick={() => { window.location.href = "/api/auth/github"; }} className="subby-primary-button w-full"><Github className="size-4" /> Continue with GitHub <ChevronRight className="size-4" /></Button>
+          <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-slate-500"><span className="h-px flex-1 bg-white/10" /> or <span className="h-px flex-1 bg-white/10" /></div>
+          <div className="mb-4 grid grid-cols-2 rounded-xl border border-white/10 bg-white/[0.03] p-1 text-xs">
+            <button type="button" onClick={() => { setAuthMode("login"); loginMutation.reset(); registerMutation.reset(); }} className={`rounded-lg px-3 py-2 transition ${authMode === "login" ? "bg-white/10 text-white" : "text-slate-500"}`}>Sign in</button>
+            <button type="button" onClick={() => { setAuthMode("register"); loginMutation.reset(); registerMutation.reset(); }} className={`rounded-lg px-3 py-2 transition ${authMode === "register" ? "bg-white/10 text-white" : "text-slate-500"}`}>Create account</button>
+          </div>
+          <form onSubmit={submitAuth} className="space-y-3 text-left">
+            {authMode === "register" && <label className="block text-xs text-slate-400">Name<input value={authName} onChange={(event) => setAuthName(event.target.value)} autoComplete="name" required minLength={2} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400/60" /></label>}
+            <label className="block text-xs text-slate-400">Email<input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} autoComplete="email" required className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400/60" /></label>
+            <label className="block text-xs text-slate-400">Password<input type="password" value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} autoComplete={authMode === "login" ? "current-password" : "new-password"} required minLength={authMode === "login" ? 1 : 10} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400/60" /></label>
+            {authMutation.error && <p role="alert" className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{authMutation.error.message}</p>}
+            <Button type="submit" disabled={authMutation.isPending} className="subby-primary-button w-full">{authMutation.isPending ? "Working…" : authMode === "login" ? "Sign in with email" : "Create local account"}<ChevronRight className="size-4" /></Button>
+          </form>
+          <p className="mt-4 text-center text-[11px] leading-relaxed text-slate-500">Your password is stored as a one-way scrypt hash. SUBBY never places it in chat, Vault records, or GitHub.</p>
         </section>
       </main>
     );
