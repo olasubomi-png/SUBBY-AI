@@ -52,6 +52,7 @@ const workspaceNavigation = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const isChatRoute = location === "/" || location === "/chat";
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("drawer") === "1");
   const [drawerSearch, setDrawerSearch] = useState("");
@@ -169,7 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="subby-topbar-spacer" />
           <button onClick={() => navigate("/chat")} className="subby-ask-button"><Bot className="size-4" /> Ask SUBBY</button>
         </header>
-        <div className="subby-page-wrap">{children}</div>
+        <div className={`subby-page-wrap ${isChatRoute ? "subby-page-wrap-chat" : ""}`}>{children}</div>
       </main>
     </div>
   );

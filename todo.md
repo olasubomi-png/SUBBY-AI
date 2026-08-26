@@ -155,10 +155,10 @@
 
 # VPS Primary Host Correction
 
-- [ ] Replace the unsupported nip.io OAuth origin with a real domain allowed by the Manus OAuth project.
-- [ ] Point the approved domain’s DNS A record to `54.167.96.219` and issue HTTPS on the VPS.
-- [ ] Update the Manus OAuth and GitHub OAuth callback registrations for the approved domain, then validate authenticated sign-in and GitHub repository access.
-- [ ] Verify that `subby.kdns.fr` resolves to `54.167.96.219` before changing the VPS reverse proxy or OAuth callback configuration.
+- [x] Replace the unsupported nip.io OAuth origin with the real VPS-primary hostname `subby.kdns.fr`.
+- [x] Point the approved domain’s DNS A record to `54.167.96.219` and issue HTTPS on the VPS.
+- [ ] Register `https://subby.kdns.fr/api/github/callback` in the GitHub OAuth application, then validate authenticated GitHub sign-in and repository access.
+- [x] Verify that `subby.kdns.fr` resolves to `54.167.96.219` before changing the VPS reverse proxy or OAuth callback configuration.
 
 # Dual Authentication Upgrade
 
@@ -167,5 +167,15 @@
 - [x] Implement email/password registration, login, logout, and session restoration with scrypt hashing and signed sessions.
 - [x] Implement GitHub OAuth sign-in on the VPS while keeping repository connection OAuth separate through shared, intent-bound OAuth state.
 - [x] Add login/register UI with both GitHub and email/password options and clear error states.
-- [ ] Migrate the VPS runtime, database schema, and HTTPS host to the dual-auth build.
-- [ ] Run migrations, TypeScript checks, Vitest coverage, and authenticated VPS verification.
+- [x] Migrate the VPS runtime, database schema, and HTTPS host to the dual-auth build.
+- [x] Run the dual-auth database migration, TypeScript checks, Vitest coverage, and public VPS health verification.
+
+# VPS UX and Media Fixes
+
+- [x] Keep GitHub sign-in and repository connection callbacks on the SUBBY host instead of falling back to an unrelated project; successful repository callbacks now return to `/chat`.
+- [x] Reduce the mobile AI composer height and make the chat conversation use the available viewport width without requiring desktop-site mode; the global Chat page wrapper no longer constrains the conversation.
+- [x] Diagnose image generation through the configured service and show a clear unavailable state when the upstream account reports exhausted usage; no fake image or placeholder is created.
+- [x] Add regression coverage for image-generation error handling and run the full 47-test suite; responsive behavior was verified in the managed mobile preview.
+- [x] Build, deploy, and verify the fixes on `https://subby.kdns.fr` across mobile and desktop layouts; the VPS service is active and the public app shell returns 200.
+- [x] Redirect the temporary nip.io hostname to `https://subby.kdns.fr` so old bookmarks cannot open a stale or unrelated project flow.
+- [x] Split heavy chat/media dependencies from the initial route so the VPS mobile page can render promptly without desktop-site mode; the initial bundle is now separate from the Chat chunk.

@@ -52,6 +52,18 @@ export default function Chat() {
   const history = trpc.workspace.chatHistory.useQuery({ sessionId: activeSessionId ?? undefined }, { enabled: Boolean(activeSessionId) });
   const proposalReview = trpc.github.getProposalReview.useQuery({ sessionId: activeSessionId ?? 0 }, { enabled: Boolean(activeSessionId) });
   const [messages, setMessages] = useState<Message[]>([]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("github_connected") === "1") {
+      toast.success("GitHub connected to SUBBY. Choose a repository below to attach it to this AI chat.");
+      window.history.replaceState(null, "", "/chat");
+    }
+    const githubError = params.get("github_error");
+    if (githubError) {
+      toast.error(githubError);
+      window.history.replaceState(null, "", "/chat");
+    }
+  }, []);
   const githubStatus = trpc.github.status.useQuery();
   const repositories = trpc.github.listRepositories.useQuery(undefined, { enabled: Boolean(githubStatus.data?.connection) });
   const branches = trpc.github.listRepositoryBranches.useQuery({ fullName: repositoryName }, { enabled: Boolean(githubStatus.data?.connection && repositoryName) });

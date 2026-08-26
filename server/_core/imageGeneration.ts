@@ -81,9 +81,7 @@ export async function generateImage(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw new Error(
-      `Image generation request failed (${response.status} ${response.statusText})${detail ? `: ${detail}` : ""}`
-    );
+    throw new Error(formatImageGenerationError(response.status, response.statusText, detail));
   }
 
   const result = (await response.json()) as {
@@ -104,6 +102,11 @@ export async function generateImage(
   return {
     url,
   };
+}
+
+export function formatImageGenerationError(status: number, statusText: string, detail: string) {
+  if (/usage exhausted|exhausted/i.test(detail)) return "Image generation is temporarily unavailable because the configured image service has exhausted its usage. No image was created.";
+  return `Image generation request failed (${status} ${statusText})${detail ? `: ${detail}` : ""}`;
 }
 
 export type ImageModelInfo = {

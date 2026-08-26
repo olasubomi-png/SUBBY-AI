@@ -170,7 +170,7 @@ export async function registerGitHubOAuthRoutes(app: Express) {
       callbackUserId = record.userId;
       await saveConnection(record.userId, userResponse.data.login, token);
       await db.insert(activityEvents).values({ userId: record.userId, projectId: null, kind: "workspace", title: "Connected GitHub account", detail: `@${userResponse.data.login}` });
-      res.redirect("/github?connected=1");
+      res.redirect("/chat?github_connected=1");
     } catch (error) {
       const message = error instanceof Error ? error.message : "GitHub connection failed.";
       const historyUserId = callbackUserId ?? sessionUser?.id ?? null;
@@ -178,7 +178,7 @@ export async function registerGitHubOAuthRoutes(app: Express) {
         const db = await getDb();
         if (db) await db.insert(activityEvents).values({ userId: historyUserId, projectId: null, kind: "workspace", title: "GitHub connection failed", detail: message.slice(0, 180) });
       }
-      res.redirect(`/github?github_error=${encodeURIComponent(message.slice(0, 140))}`);
+      res.redirect(`/chat?github_error=${encodeURIComponent(message.slice(0, 140))}`);
     }
   });
 }
