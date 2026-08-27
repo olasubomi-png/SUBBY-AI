@@ -212,7 +212,7 @@
 - [x] Establish consistent primary, secondary, ghost, and destructive interaction states with restrained hover and accessible focus treatment.
 - [x] Apply the calm professional visual system across public pages, dashboard navigation, Chat, composer, Workspace pages, dialogs, forms, code blocks, and notifications without altering product behavior.
 - [x] Verify text contrast, active and focus states, and the redesigned core experience on desktop plus 360px, 390px, and 412px mobile viewports.
-- [ ] Run automated checks, save a checkpoint, and deploy the visual redesign to the VPS only after validation passes.
+- [x] Run automated checks, save a checkpoint, and deploy the visual redesign to the VPS only after validation passes.
 
 # Project TODO
 

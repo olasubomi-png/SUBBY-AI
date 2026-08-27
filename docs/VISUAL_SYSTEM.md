@@ -35,3 +35,5 @@ Desktop checks cover Chat, GitHub, Terminal, and the standalone Not Found route.
 The final Chat review confirms that both desktop and 390px mobile code blocks use a graphite surface even when the syntax renderer carries a light inline theme. Assistant and user content remain visually distinct through neutral elevation and a restrained indigo edge instead of a large competing color field.
 
 The final 360px and 412px checks retain that hierarchy: controls are visible, Agent mode has the only selected indigo fill, inactive controls remain neutral, status remains green, and the composer plus code regions continue to fit the viewport.
+
+The bundled visual system was also deployed to the primary HTTPS host. A fresh authenticated production session loads the SUBBY navigation shell and current assets after the service restart.
