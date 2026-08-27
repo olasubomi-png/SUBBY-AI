@@ -27,6 +27,8 @@ describe("AIChatBox composer actions", () => {
     expect(html).toContain("https://media.example/generated.png");
     expect(html).toContain("Inspecting repository structure");
     expect(html).toContain("overflow-hidden");
-    expect(html).toContain("max-w-[calc(100%-2.75rem)]");
+    expect(html).toContain("chat-message-bubble");
+    expect(html).toContain("chat-message-content");
+    expect(html).toContain("chat-composer-row");
   });
 });

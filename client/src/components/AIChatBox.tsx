@@ -215,13 +215,13 @@ export function AIChatBox({
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col bg-card text-card-foreground rounded-lg border shadow-sm",
+        "chat-shell flex min-w-0 max-w-full flex-col overflow-hidden bg-card text-card-foreground rounded-lg border shadow-sm",
         className
       )}
       style={{ height }}
     >
       {/* Messages Area */}
-      <div ref={scrollAreaRef} className="flex-1 overflow-hidden">
+      <div ref={scrollAreaRef} className="chat-messages min-w-0 max-w-full flex-1 overflow-hidden">
         {displayMessages.length === 0 ? (
           <div className="flex h-full flex-col p-4">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground">
@@ -247,8 +247,8 @@ export function AIChatBox({
             </div>
           </div>
         ) : (
-          <ScrollArea className="h-full min-w-0">
-            <div className="flex flex-col space-y-4 p-4">
+          <ScrollArea className="chat-scroll h-full min-w-0 max-w-full">
+            <div className="chat-message-list flex min-w-0 max-w-full flex-col space-y-4 p-4">
               {activityItems.length > 0 && <details className="chat-activity-feed" open aria-label="SUBBY work activity"><summary><span className="chat-activity-summary-icon"><Sparkles className="size-3.5" /></span><strong>Workspace</strong><small>{activityItems.filter((item) => item.status === "working").length ? "Working now" : `${Math.min(activityItems.length, 8)} recent actions`}</small></summary><div className="chat-activity-list">{activityItems.slice(0, 8).map((item) => <div className={`chat-activity-item chat-activity-${item.status}`} key={item.id}><span>{item.status === "working" ? <Loader2 className="size-3.5 animate-spin" /> : item.status === "failed" ? "!" : "✓"}</span><div><strong>{item.title}</strong>{item.detail && <small>{item.detail}</small>}</div></div>)}</div></details>}
               {displayMessages.map((message, index) => {
                 const generatedMedia = message.role === "assistant" ? extractGeneratedMedia(message.content) : null;
@@ -256,7 +256,7 @@ export function AIChatBox({
                   <div
                     key={index}
                     className={cn(
-                      "flex min-w-0 gap-3",
+                      "chat-message-row flex min-w-0 max-w-full gap-3",
                       message.role === "user"
                         ? "justify-end items-start"
                         : "justify-start items-start"
@@ -270,20 +270,20 @@ export function AIChatBox({
 
                     <div
                       className={cn(
-                        "min-w-0 max-w-[calc(100%-2.75rem)] overflow-hidden break-words rounded-lg px-4 py-2.5 sm:max-w-[80%]",
+                        "chat-message-bubble min-w-0 max-w-full overflow-hidden break-words rounded-lg px-4 py-2.5 sm:max-w-[80%]",
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "border border-slate-700/50 bg-slate-900/95 text-slate-100"
                       )}
                     >
                       {message.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert prose-p:text-slate-100 prose-li:text-slate-100 prose-strong:text-white max-w-none break-words [&_code]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto">
+                        <div className="chat-message-content prose prose-sm dark:prose-invert prose-p:text-slate-100 prose-li:text-slate-100 prose-strong:text-white min-w-0 max-w-full break-words [&_code]:break-words [&_pre]:max-w-full [&_pre]:overflow-x-auto">
                           {generatedMedia?.text && <Streamdown>{generatedMedia.text}</Streamdown>}
                           {generatedMedia && <a href={generatedMedia.url} target="_blank" rel="noreferrer" className="not-prose mt-3 block"><img src={generatedMedia.url} alt="Generated project media" className="max-h-[420px] w-full rounded-lg border border-cyan-300/20 object-cover" loading="lazy" /></a>}
                           {!generatedMedia && <Streamdown>{message.content}</Streamdown>}
                         </div>
                       ) : (
-                        <p className="whitespace-pre-wrap text-sm">
+                        <p className="chat-message-content min-w-0 max-w-full whitespace-pre-wrap text-sm">
                           {message.content}
                         </p>
                       )}
@@ -303,7 +303,7 @@ export function AIChatBox({
                   <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="size-4 text-primary" />
                   </div>
-                  <div className="rounded-lg bg-muted px-4 py-2.5">
+                  <div className="chat-loading-bubble min-w-0 max-w-full rounded-lg bg-muted px-4 py-2.5">
                     <Loader2 className="size-4 animate-spin text-muted-foreground" />
                   </div>
                 </div>
@@ -317,10 +317,10 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="relative flex flex-col gap-2 border-t bg-background/50 p-4"
+        className="chat-composer relative flex min-w-0 max-w-full flex-col gap-2 border-t bg-background/50 p-4"
       >
         {(onModeChange || onModelProfileChange) && <div className="composer-settings-row">{onModeChange && <div className="composer-mode-switch" role="group" aria-label="Chat mode"><button type="button" onClick={() => onModeChange("agent")} className={mode === "agent" ? "active" : ""}><span>Agent mode</span><small>Work through approved actions</small></button><button type="button" onClick={() => onModeChange("plan")} className={mode === "plan" ? "active" : ""}><span>Plan mode</span><small>Plan before any action</small></button></div>}{onModelProfileChange && <label className="composer-model-profile"><span>Model</span><select value={modelProfile ?? "auto"} onChange={(event) => onModelProfileChange(event.target.value as "auto" | "quality" | "fast" | "economy")} aria-label="Choose AI model profile"><option value="auto">Auto</option><option value="quality">Best quality</option><option value="fast">Fast</option><option value="economy">Economy</option></select></label>}</div>}
-        <div className="flex min-w-0 items-end gap-2">{composerActions}
+        <div className="chat-composer-row flex min-w-0 max-w-full items-end gap-2">{composerActions}
         {onOpenVault && <button type="button" onClick={onOpenVault} className="composer-vault-button" aria-label="Open Project Vault to store a secret"><KeyRound className="size-4" /></button>}
         <Textarea
           ref={textareaRef}

@@ -190,3 +190,190 @@
 - [x] Configure the Gemini key on the VPS, deploy the tested release, and verify a direct server-side Gemini smoke request; Chat and repository paths are covered by the provider-boundary regression suite.
 - [x] Verify the browser-bound GitHub OAuth state cookie during sign-in callbacks and add regression coverage before production OAuth validation.
 - [x] Correct the VPS `GITHUB_OAUTH_CALLBACK_URL` runtime value to the primary HTTPS host, then complete the approved production sign-in redirect and repository-connection tests.
+
+# Mobile Chat Responsiveness Fix
+
+- [x] Inspect the actual Chat, message, markdown, code-block, layout, sidebar, header, and composer hierarchy for the reported mobile clipping.
+- [x] Correct underlying horizontal sizing so normal messages never overflow the viewport while tables and code scroll only inside their own containers.
+- [x] Refine the mobile composer, safe-area spacing, and phone-first focus layout without changing the SUBBY product design.
+- [x] Add regression coverage for long text, URLs, markdown tables, long code, activity cards, and composer sizing.
+- [x] Validate Chat at 320px, 360px, 375px, 390px, 412px, 480px, 768px, 1024px, and desktop widths with production checks.
+- [x] Save and publish the focused mobile Chat responsiveness release after all checks pass.
+
+# Project TODO
+
+- [x] Define persisted records for projects, agent tasks, activity events, and chat messages.
+- [x] Apply the database migration for projects, agent tasks, activity events, and chat messages.
+- [x] Upload and apply the supplied SUBBY logo across navigation and workspace identity.
+- [x] Build a signed-in dashboard with project, agent, activity, and workspace summaries.
+- [x] Build a persisted project hub with project creation and project-context views.
+- [x] Build an AI co-developer chat workspace with server-side actionable responses.
+- [x] Build an agent task board for queued, in-progress, and completed coding work.
+- [x] Add responsive workspace panels for files, terminal, GitHub, deployments, and media tools with unavailable integrations labelled “coming soon.”
+- [x] Add accessible responsive styling, motion preferences, empty states, and interaction feedback.
+- [x] Add and run Vitest coverage for server-side workspace behavior.
+- [x] Re-run automated checks and visually validate the public sign-in state; defer live signed-in acceptance testing to the user session.
+- [x] Validate the production build and public authentication gateway, review the checklist, and save a final checkpoint.
+- [x] Confirm Preview-panel access guidance and document the remaining user sign-in validation step.
+- [x] Add persisted project-file records and safe file management procedures.
+- [x] Build a project-file workspace with project selection, file creation, editing, deletion, and unsaved-change feedback.
+- [x] Add workspace-file tests, run production validation, and save a checkpoint for the expansion.
+- [x] Add persisted records and protected procedures for repository plans, command drafts, deployment plans, and media briefs.
+- [x] Replace the Terminal, Deployments, Media, and GitHub placeholders with functional no-connector workspace pages.
+- [x] Add tests, validate responsive behavior, and save a checkpoint for the placeholder replacement work.
+- [x] Define secure GitHub connection, repository analysis, test, change-proposal, and explicit push-approval boundaries.
+- [x] Add encrypted per-project secret records that are unavailable to chat transcripts and never returned in plaintext after saving.
+- [x] Add GitHub OAuth connection, repository selection, and project repository binding.
+- [x] Add AI-assisted repository inspection, actionable change proposals, controlled test execution, and explicit push-back approval.
+- [x] Improve the workspace with repository context, operation history, and clear status/error handling.
+- [x] Add security-focused tests, complete validation, and save a checkpoint for the secure repository workspace upgrade.
+- [x] Add the Project Vault interface and encrypted-secret readiness checks while awaiting the encryption key.
+- [x] Activate GitHub OAuth only after SUBBY is published and the OAuth callback URL plus credentials are configured.
+- [x] Add persisted GitHub operation history and show connection, inspection, workflow, and pull-request outcomes in the workspace.
+- [x] Persist GitHub connection and disconnection outcomes in the operation history, including callback feedback.
+- [x] Persist GitHub OAuth callback failures and display success or failure feedback after redirect.
+- [x] Save a final checkpoint for the secure GitHub and Project Vault upgrade.
+- [x] Capture the GitHub Actions workflow-dispatch validation response and identify its required inputs.
+- [x] Fix workflow dispatch and surface an actionable GitHub error when a workflow cannot be run manually.
+- [x] Add regression coverage, validate the workflow path, and checkpoint the GitHub Actions fix.
+- [x] Define the persistent conversation session model for the AI-first workspace.
+- [x] Add persisted conversation sessions, titles, and session-aware chat message storage.
+- [x] Build an AI-first chat workspace with a conversation sidebar, New chat control, project-context selection, and retained history.
+- [x] Improve SUBBY’s AI context so project and repository-aware help is available without exposing Project Vault values.
+- [x] Inject safe project and linked-repository metadata into SUBBY AI conversations without accessing Project Vault values.
+- [x] Add session-context regression tests proving project metadata is included and secret values are excluded.
+- [x] Add unit coverage for SUBBY’s safe AI context and system prompt boundary.
+- [x] Add a router-level session-aware chat test that verifies the LLM request includes project and repository metadata but never reads Project Vault values.
+- [x] Add conversation-session tests, validate responsive chat behavior, and save an AI-first experience checkpoint.
+- [x] Define safe boundaries for repository-attached chat, remote inspection, workflow-based testing, change preparation, and explicit write approval.
+- [x] Redirect signed-in users from the root route to SUBBY Chat and make chat the primary landing experience.
+- [x] Add a chat attachment control for selecting a connected GitHub repository and branch as active conversation context.
+- [x] Persist an explicitly selected repository branch on each chat session and use it for AI context and repository actions.
+- [x] Add branch attachment tests and validate branch-aware repository controls in chat.
+- [x] Add repository inspection, test-request, error-diagnosis, and change-plan actions to the chat workspace.
+- [x] Add an explicit approval flow for committing prepared changes and updating protected repository branches.
+- [x] Add session repository-attachment regression coverage for persisted repository and branch context.
+- [x] Add attached-session branch-aware action coverage for inspect, propose, and test controls.
+- [x] Distinguish protected-branch write rejections from other GitHub 403 errors and provide a PR fallback only when appropriate.
+- [x] Add tests, validate the chat-first repository experience, and save a checkpoint.
+- [x] Move the chat attachment control into the message composer and replace the header-only attachment entry point.
+- [x] Add a functional composer tool menu for repository attachment, local-file attachment, project-file context, planning, tasks, and image generation.
+- [x] Make unavailable advanced tool categories explicit rather than presenting non-functional menu actions.
+- [x] Repair mobile chat sizing, scrolling, code-block wrapping, and composer safe-area spacing so all message text remains readable.
+- [x] Add regression coverage, validate the composer menu and mobile chat layout, and publish the upgrade.
+- [x] Add a composer-level Project Vault entry point for storing per-project runtime secrets without rendering saved values.
+- [x] Reaffirm that Project Vault values remain unavailable to chat prompts, browser responses, and arbitrary shell execution.
+- [x] Improve chat guidance for approved GitHub commits, protected-branch PR fallback, and existing manually dispatchable test workflows.
+- [x] Add regression coverage, validate the secure composer workflow, and publish the update.
+- [x] Repair generated-image rendering in chat and show real media output instead of blocked Markdown placeholders.
+- [x] Replace the video-generation prompt-only behavior with a clear runnable generation path or an explicit unavailable state that is not presented as a completed task.
+- [x] Streamline repository attachment for users who already connected GitHub, then inspect the selected repository and invite the user to describe the desired change.
+- [x] Show visible, persistent action-progress cards in chat for repository inspection, workflow dispatch, proposal preparation, pull requests, commits, and media generation.
+- [x] Add regression coverage, validate the mobile and desktop flows, and publish the professional chat workflow update.
+- [x] Simplify the GitHub attachment dialog to foreground only the connected-repository selector, with branch selection after repository choice.
+- [x] Hide the attached-repository action panel from the main chat after a repository is attached while preserving repository context for chat actions.
+- [x] Diagnose and fix the reported 409 error in repository attachment/session persistence, with regression coverage.
+- [x] Move New chat and conversation history out of the cramped Chat canvas into the dashboard/Overview experience.
+- [x] Ensure every chat can use the connected GitHub account when the user explicitly attaches a repository, then inspect it and ask what to do next.
+- [x] Run tests, visually validate desktop/mobile chat and attachment flows, and publish the revised workspace.
+- [x] Re-verify the restored explicit branch selector after repository choice and preserve the selected branch through attachment.
+- [x] Save and publish a new checkpoint after the repository-first and dashboard-history revisions; record the release version (13610713).
+- [x] Adapt the mobile workspace navigation into a focused SUBBY drawer with New chat, Chats, Library, Sandbox, Media, GitHub, and Project Vault destinations.
+- [x] Add clear Agent mode and Plan mode controls to Chat with distinct safe behavior and visible selected state.
+- [x] Refine the mobile composer to match the reference’s focused input, attachment, secure Vault, and send/loading affordances without hiding message content.
+- [x] Improve in-chat workspace activity cards so repository inspection, diagnosis, proposals, tests, and approved writes read as a clear work ledger.
+- [x] Add regression coverage, visually validate the reference-inspired mobile and desktop flow, and publish the update.
+- [x] Save and publish a new checkpoint for the reference-inspired mobile drawer, Agent/Plan chat mode, composer, and Workspace activity-card update, then record the new release version (7020bb2a).
+- [x] Make the mobile Chat conversation use the full viewport width like the reference instead of the narrow centered message column.
+- [x] Make the mobile composer input span the available width with controls kept in one readable row and no vertical squeeze.
+- [x] Preserve full message readability and scrolling while keeping Agent/Plan controls and the Workspace ledger accessible.
+- [x] Run regression checks, visually verify phone and desktop Chat, and publish the layout correction.
+- [x] Visually verify the final post-fix Chat layout at desktop width after the mobile full-width and composer CSS changes.
+- [x] Save and publish a new checkpoint for the mobile Chat width, composer, and readability correction, then record the release version (3109d499).
+- [x] Anchor the Agent/Plan selector and message composer at the bottom of the mobile Chat viewport.
+- [x] Keep only the conversation history scrollable above the bottom composer so it cannot cover messages.
+- [x] Verify the bottom-anchored layout at phone and desktop sizes, run tests, and publish the correction.
+- [x] Review the attached full-platform audit against the current SUBBY architecture and identify functional, mocked, and incomplete areas.
+- [x] Apply the selected safe audit slice: enrich real GitHub repository inspection with reusable project intelligence without replacing working features or simulating unavailable actions.
+- [x] Add regression coverage and verify the selected improvements across the real application workflow.
+- [x] Publish a checkpoint documenting the completed repository-intelligence slice and remaining terminal, MCP, video, and persistent-job limitations.
+- [x] Audit the attached ENV-AI workspace ZIP and prompt against the current SUBBY architecture and capabilities.
+- [x] Apply a compatible foundation improvement: add provider-agnostic Auto, Best quality, Fast, and Economy model profiles while preserving SUBBY branding, approval gates, Vault isolation, and existing working features.
+- [x] Add regression coverage and validate the merged result with TypeScript checks, 31 Vitest tests, and responsive mobile/desktop verification; the production bundle remains limited by sandbox memory during chunk rendering.
+- [x] Publish a checkpoint documenting reused functionality, applied fixes, and explicitly unavailable capabilities.
+- [x] Investigate Vite production-build memory pressure; confirm optional compressed-size reporting was not the failing step and revert the ineffective configuration change.
+- [x] Audit current single-file proposal and GitHub write contracts for a safe multi-file review extension.
+- [x] Add explicit multi-file diff review state with per-file approval visibility and no Project Vault exposure.
+- [x] Implement multi-file proposal review and explicit GitHub PR/commit approval actions in the workspace.
+- [x] Add regression tests and verify the review flow on mobile and desktop before publishing.
+- [x] Save and publish a checkpoint for the multi-file review workflow.
+- [x] Audit current single-file proposal and GitHub write contracts for a safe multi-file review extension.
+- [x] Add explicit multi-file diff review state with per-file approval visibility and no Project Vault exposure.
+- [x] Implement multi-file proposal review and explicit GitHub PR/commit approval actions in the workspace.
+- [x] Add regression tests and verify the review flow on mobile and desktop before publishing.
+- [x] Save and publish a checkpoint for the multi-file review workflow.
+- [x] Add a real batched GitHub pull-request approval flow that accepts multiple reviewed file changes and applies them together safely.
+- [x] Add a real batched GitHub branch-commit approval flow that writes multiple reviewed file changes together safely.
+- [x] Add regression coverage for multi-file queue behavior, duplicate-path replacement, clear-review behavior, and approval payload generation.
+- [x] Add regression coverage for multi-file review queue state transitions, including selection and clear-review reset before any GitHub write.
+- [x] Persist multi-file proposal reviews per chat session without storing or exposing Project Vault values.
+- [x] Add per-file unified diff review with approve/reject state and safe batched approval payloads.
+- [x] Add GitHub Actions run-status cards with refreshable status and activity-ledger entries.
+- [x] Add migration, regression coverage, and responsive verification for the continuation features.
+- [x] Save and publish a checkpoint for the persisted reviews, unified diff review, and GitHub Actions status-card update after the latest passing tests/build.
+- [x] Implement a real per-file unified diff renderer with added, removed, and context lines for reviewed proposals.
+- [x] Add deterministic regression coverage for unified diff output so approval decisions are based on diff data, not only full-file previews.
+- [x] Audit the current Actions run contract, activity ledger, proposal schema, and unified diff renderer for the next continuation slice.
+- [x] Persist GitHub Actions run snapshots per attached repository and branch without storing Project Vault values.
+- [x] Add inline review comments tied to proposal files and line locations.
+- [x] Add side-by-side diff mode and a resume-review entry point for persisted proposal reviews.
+- [x] Add migrations, regression tests, production validation, and responsive verification for the continuation slice.
+- [x] Save and publish a checkpoint for Actions history, comments, side-by-side review, and resume-review entry points.
+- [x] Add an explicit Resume review affordance in the attached-repository panel for persisted open reviews.
+- [x] Add deterministic tests for Actions snapshot persistence/history mapping, inline comment contracts, side-by-side diff output, and resume-review visibility.
+- [x] Inspect the authenticated GitHub target and local git state for the SUBBY-AI publication.
+- [x] Verify no environment secrets or generated credentials are included in the GitHub commit.
+- [x] Push the current SUBBY-AI source to the private `olasubomi-png/SUBBY-AI` repository.
+- [x] Verify the remote main branch and report the GitHub repository URL.
+- [x] Audit tracked repository content for embedded secrets, credentials, and token-shaped values before finalizing GitHub publication safety; the only match is a runtime environment-variable reference in Map.tsx.
+- [x] Confirm ignore rules and pushed GitHub state exclude `.env` files and credential artifacts, then re-verify the remote repository; no `.env` path is tracked and the private remote main branch is verified.
+- [x] Inspect the pushed `server/projectSecrets.ts` and `server/projectSecrets.test.ts` files and document that they contain only application/test logic, not embedded secrets or credential material.
+- [x] Confirm the VPS provider, public IP or hostname, SSH user, SSH port, and whether deployment should use Docker or a native Node process: 54.167.96.219, ubuntu, SSH 22, native Node.js.
+- [x] Confirm the production domain or whether the VPS should be accessed by IP initially: use the VPS IP for initial testing.
+- [x] Prepare VPS deployment configuration without committing secrets or private keys: native Node.js systemd unit, root-only runtime configuration, non-minified build path, and Nginx reverse proxy.
+- [x] Deploy SUBBY-AI to the VPS and configure automatic restart and reverse-proxy HTTPS behavior: systemd enabled, Nginx active, and Let’s Encrypt renewal scheduled.
+- [x] Verify VPS application health, authentication, database-backed session persistence, and the GitHub OAuth/read-only repository-listing path; workflow dispatch and repository writes remain deliberately separate user-approved actions.
+- [x] Obtain the existing MySQL/TiDB connection details securely and configure the VPS environment without exposing the database password in chat or Git; runtime values were transferred over SSH into a root-only configuration file.
+- [x] Clone the private `olasubomi-png/SUBBY-AI` repository onto the VPS using a dedicated read-only GitHub deploy key or GitHub App credential, never a committed token.
+- [x] Make the GitHub OAuth callback URL configurable for the VPS while preserving the current Manus-domain default, then rebuild and redeploy the affected server bundle.
+- [x] Make the production build script use the VPS-compatible non-minified Vite mode, then validate the resulting client and server artifacts.
+- [x] Add a separate Nginx host for SUBBY-AI on a nip.io hostname and obtain HTTPS without changing the existing `subby-lab` site.
+- [x] Configure the VPS GitHub OAuth callback for the primary HTTPS host after registering that exact callback URL in the GitHub OAuth application.
+- [x] Verify the VPS production service, external MySQL/TiDB connectivity, HTTP-to-HTTPS redirect, certificate, Nginx proxy, and public SUBBY application shell.
+- [x] Complete authenticated GitHub OAuth sign-in and repository-connection validation on the VPS; the self-hosted email/password flow remains available, while Manus OAuth is not used for the VPS sign-in experience.
+- [x] Replace the unsupported nip.io OAuth origin with the real VPS-primary hostname `subby.kdns.fr`.
+- [x] Point the approved domain’s DNS A record to `54.167.96.219` and issue HTTPS on the VPS.
+- [x] Register `https://subby.kdns.fr/api/github/callback` in the GitHub OAuth application, then validate authenticated GitHub sign-in, encrypted connection storage, and read-only repository access.
+- [x] Verify that `subby.kdns.fr` resolves to `54.167.96.219` before changing the VPS reverse proxy or OAuth callback configuration.
+- [x] Audit the current Manus auth, user schema, session cookie, and GitHub repository OAuth boundaries.
+- [x] Add secure self-hosted account fields and session records without exposing passwords or tokens.
+- [x] Implement email/password registration, login, logout, and session restoration with scrypt hashing and signed sessions.
+- [x] Implement GitHub OAuth sign-in on the VPS while keeping repository connection OAuth separate through shared, intent-bound OAuth state.
+- [x] Add login/register UI with both GitHub and email/password options and clear error states.
+- [x] Migrate the VPS runtime, database schema, and HTTPS host to the dual-auth build.
+- [x] Run the dual-auth database migration, TypeScript checks, Vitest coverage, and public VPS health verification.
+- [x] Keep GitHub sign-in and repository connection callbacks on the SUBBY host instead of falling back to an unrelated project; successful repository callbacks now return to `/chat`.
+- [x] Reduce the mobile AI composer height and make the chat conversation use the available viewport width without requiring desktop-site mode; the global Chat page wrapper no longer constrains the conversation.
+- [x] Diagnose image generation through the configured service and show a clear unavailable state when the upstream account reports exhausted usage; no fake image or placeholder is created.
+- [x] Add regression coverage for image-generation error handling and run the full 47-test suite; responsive behavior was verified in the managed mobile preview.
+- [x] Build, deploy, and verify the fixes on `https://subby.kdns.fr` across mobile and desktop layouts; the VPS service is active and the public app shell returns 200.
+- [x] Redirect the temporary nip.io hostname to `https://subby.kdns.fr` so old bookmarks cannot open a stale or unrelated project flow.
+- [x] Split heavy chat/media dependencies from the initial route so the VPS mobile page can render promptly without desktop-site mode; the initial bundle is now separate from the Chat chunk.
+- [x] Audit current AI chat and GitHub-assisted repository paths for Gemini provider integration points.
+- [x] Add a server-only Gemini provider abstraction with configurable fast, coding, and reasoning model routing.
+- [x] Add secure `GEMINI_API_KEY` configuration documentation without placing a key or environment file in source control.
+- [x] Route Chat and AI-assisted repository inspection/proposal requests through Gemini with clear configuration and usage errors.
+- [x] Add provider-routing and secret-safety regression tests, then validate the production build.
+- [x] Configure the Gemini key on the VPS, deploy the tested release, and verify a direct server-side Gemini smoke request; Chat and repository paths are covered by the provider-boundary regression suite.
+- [x] Verify the browser-bound GitHub OAuth state cookie during sign-in callbacks and add regression coverage before production OAuth validation.
+- [x] Correct the VPS `GITHUB_OAUTH_CALLBACK_URL` runtime value to the primary HTTPS host, then complete the approved production sign-in redirect and repository-connection tests.
