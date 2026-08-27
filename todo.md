@@ -200,6 +200,10 @@
 - [x] Validate Chat at 320px, 360px, 375px, 390px, 412px, 480px, 768px, 1024px, and desktop widths with production checks.
 - [x] Save and publish the focused mobile Chat responsiveness release after all checks pass.
 
+# Release Publication
+
+- [x] Push the completed Gemini, OAuth, and mobile Chat responsiveness releases to the private `olasubomi-png/SUBBY-AI` GitHub repository.
+
 # Project TODO
 
 - [x] Define persisted records for projects, agent tasks, activity events, and chat messages.
