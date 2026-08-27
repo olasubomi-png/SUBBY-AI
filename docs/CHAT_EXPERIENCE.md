@@ -29,3 +29,7 @@ The first tablet check exposed a legacy route-level negative margin and width ru
 The corrected 768px and 1024px views retain a single readable conversation column alongside the existing global navigation. No dedicated conversation rail returns before the available space supports it, code remains bounded in its own scroll surface, and the composer keeps a stable bottom position.
 
 At 1280px and 1440px, the centered canvas provides substantially more breathing room than the inherited dashboard layout. Assistant content reads as a document with no enclosing card, while the concise user bubble, inactive global navigation, and unified composer remain visually subordinate to the conversation.
+
+The Chat bundle was deployed to `https://subby.kdns.fr` after its service and entry asset returned successful health checks. A fresh authenticated browser session loaded the updated application shell; the workspace then continued its normal data-loading state during the observed window.
+
+The subsequent production check completed with the active conversation, document-style assistant output, markdown/code actions, attachment control, Vault entry point, Agent/Plan selector, model profile selector, and multiline composer all present on the primary host.

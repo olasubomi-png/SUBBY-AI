@@ -222,7 +222,7 @@
 - [x] Refine Chat-specific mobile and tablet behavior at 320px, 360px, 375px, 390px, 412px, 480px, 768px, and 1024px without viewport hacks, clipped content, or horizontal overflow.
 - [x] Add or update UI regression tests for message hierarchy, composer controls, loading-state structure, and overflow-safe markdown behavior.
 - [x] Run TypeScript, the complete Vitest suite, and the production build; visually inspect Chat at 1280px, 1440px, and 1920px before committing and deploying.
-- [ ] Commit, checkpoint, push, and deploy the complete Chat experience redesign to the VPS after validation succeeds.
+- [x] Commit, checkpoint, push, and deploy the complete Chat experience redesign to the VPS after validation succeeds.
 
 # Project TODO
 
