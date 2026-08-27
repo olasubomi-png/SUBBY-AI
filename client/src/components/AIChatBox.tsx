@@ -272,7 +272,7 @@ export function AIChatBox({
                       className={cn(
                         "chat-message-bubble min-w-0 max-w-full overflow-hidden break-words rounded-lg px-4 py-2.5 sm:max-w-[80%]",
                         message.role === "user"
-                          ? "bg-primary text-primary-foreground"
+                          ? "chat-user-message border border-primary/30 bg-primary/10 text-primary-foreground"
                           : "border border-slate-700/50 bg-slate-900/95 text-slate-100"
                       )}
                     >

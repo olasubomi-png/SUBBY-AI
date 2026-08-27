@@ -1,0 +1,613 @@
+/*
+ * SUBBY Professional Visual System
+ * Centralized semantic tokens and component overrides for a calm AI engineering workspace.
+ */
+
+@theme inline {
+  --color-primary-hover: var(--subby-primary-hover);
+  --color-destructive: var(--subby-error);
+  --color-destructive-foreground: #ffffff;
+  --color-input: var(--subby-border);
+}
+
+:root,
+.dark {
+  --subby-background: #0b0d12;
+  --subby-surface: #12161f;
+  --subby-surface-elevated: #181d27;
+  --subby-surface-hover: #202633;
+  --subby-text-primary: #f3f4f6;
+  --subby-text-secondary: #9ca3af;
+  --subby-text-muted: #6b7280;
+  --subby-primary: #6366f1;
+  --subby-primary-hover: #818cf8;
+  --subby-violet: #8b5cf6;
+  --subby-border: #252b36;
+  --subby-border-subtle: #1d222c;
+  --subby-success: #22c55e;
+  --subby-warning: #f59e0b;
+  --subby-error: #ef4444;
+  --subby-focus-ring: rgba(129, 140, 248, 0.42);
+  --subby-panel-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+
+  --background: var(--subby-background);
+  --foreground: var(--subby-text-primary);
+  --card: var(--subby-surface);
+  --card-foreground: var(--subby-text-primary);
+  --primary: var(--subby-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--subby-surface-elevated);
+  --secondary-foreground: var(--subby-text-primary);
+  --muted: var(--subby-surface-elevated);
+  --muted-foreground: var(--subby-text-secondary);
+  --accent: var(--subby-surface-hover);
+  --accent-foreground: var(--subby-text-primary);
+  --border: var(--subby-border);
+  --ring: var(--subby-primary-hover);
+}
+
+html,
+body,
+#root {
+  background: var(--subby-background);
+  color: var(--subby-text-primary);
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.32);
+  color: #ffffff;
+}
+
+button,
+input,
+textarea,
+select {
+  accent-color: var(--subby-primary);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--subby-primary-hover);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--subby-focus-ring);
+}
+
+.subby-shell {
+  background: var(--subby-background);
+  color: var(--subby-text-primary);
+}
+
+.subby-main {
+  background: radial-gradient(56rem 34rem at 78% -18%, rgba(99, 102, 241, 0.10), transparent 66%), var(--subby-background);
+}
+
+.subby-sidebar {
+  border-color: var(--subby-border-subtle);
+  background: linear-gradient(180deg, #10131a 0%, #0d1016 54%, #0b0d12 100%);
+}
+
+.subby-topbar {
+  border-color: var(--subby-border-subtle);
+  background: rgba(11, 13, 18, 0.88);
+  backdrop-filter: blur(16px);
+}
+
+.subby-logo {
+  filter: saturate(0.68) contrast(0.94) drop-shadow(0 3px 8px rgba(99, 102, 241, 0.16));
+}
+
+.subby-brand,
+.subby-wordmark,
+.subby-page-heading h1,
+.workspace-heading h1,
+.workspace-no-project h1,
+.tool-heading h1,
+.tool-no-project h1,
+.chat-heading h1,
+.ai-chat-header h1,
+.subby-modal h2,
+.subby-auth-card h1 {
+  color: var(--subby-text-primary);
+}
+
+.eyebrow,
+.nav-label,
+.file-rail-head,
+.composer-model-profile,
+.workspace-project-bar > span,
+.tool-project-chooser,
+.chat-project-select span {
+  color: var(--subby-text-muted);
+}
+
+.eyebrow {
+  letter-spacing: 0.14em;
+}
+
+.subby-icon-button,
+.modal-close {
+  border-color: var(--subby-border);
+  background: var(--subby-surface);
+  color: var(--subby-text-secondary);
+}
+
+.subby-icon-button:hover,
+.modal-close:hover {
+  border-color: #3a4354;
+  background: var(--subby-surface-hover);
+  color: var(--subby-text-primary);
+}
+
+.subby-nav-item {
+  color: var(--subby-text-secondary);
+}
+
+.subby-nav-item:hover {
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--subby-text-primary);
+}
+
+.subby-nav-item.active {
+  border-color: rgba(129, 140, 248, 0.32);
+  background: rgba(99, 102, 241, 0.14);
+  color: var(--subby-text-primary);
+  box-shadow: inset 2px 0 0 var(--subby-primary);
+}
+
+.subby-new-project-button,
+.subby-primary-button {
+  border-color: rgba(129, 140, 248, 0.72);
+  background: var(--subby-primary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.subby-new-project-button:hover,
+.subby-primary-button:hover {
+  background: var(--subby-primary-hover);
+  filter: none;
+}
+
+.subby-ask-button {
+  border-color: rgba(129, 140, 248, 0.38);
+  background: rgba(99, 102, 241, 0.12);
+  color: #dfe1ff;
+}
+
+.subby-ask-button:hover {
+  background: rgba(99, 102, 241, 0.20);
+}
+
+.subby-panel,
+.metric-card,
+.chat-shell,
+.chat-workspace,
+.workspace-layout,
+.tool-guidance,
+.tool-form-panel,
+.tool-list-panel,
+.media-gallery,
+.project-context-panel,
+.agent-column,
+.agent-task-card,
+.coming-soon-card {
+  border-color: var(--subby-border);
+  background: var(--subby-surface);
+  box-shadow: var(--subby-panel-shadow);
+}
+
+.metric-card,
+.subby-panel,
+.agent-column,
+.agent-task-card,
+.workspace-layout,
+.chat-workspace {
+  background-image: none;
+}
+
+.panel-heading,
+.editor-toolbar,
+.file-rail-head,
+.subby-sidebar-bottom,
+.ai-chat-header,
+.ai-chat-footer {
+  border-color: var(--subby-border-subtle);
+}
+
+.metric-card p,
+.metric-card span,
+.project-row small,
+.task-preview small,
+.activity-row small,
+.workspace-heading p:not(.eyebrow),
+.tool-heading > div > p:last-child,
+.modal-copy,
+.subby-auth-card > p:not(.eyebrow),
+.chat-heading > div > p:last-child,
+.ai-chat-header > div > span {
+  color: var(--subby-text-secondary);
+}
+
+.metric-card strong,
+.project-row,
+.task-preview strong,
+.activity-row strong,
+.agent-column h2,
+.agent-task-card-top p,
+.tool-guidance h2,
+.subby-modal h2,
+.subby-empty p,
+.tool-empty p,
+.editor-empty h2 {
+  color: var(--subby-text-primary);
+}
+
+.metric-icon.cyan,
+.metric-icon.purple,
+.metric-icon.glow,
+.project-orb,
+.project-context-icon,
+.tool-heading-icon,
+.chat-side-icon,
+.workspace-empty-orb,
+.coming-soon-icon {
+  border-color: rgba(129, 140, 248, 0.28);
+  background: rgba(99, 102, 241, 0.14);
+  color: #c7d2fe;
+}
+
+.metric-card-spotlight::after {
+  background: rgba(99, 102, 241, 0.08);
+  filter: blur(14px);
+}
+
+.subby-text-button,
+.context-next,
+.agent-task-actions button,
+.file-rail-empty button,
+.editor-footer span:last-child,
+.tool-guidance > svg,
+.guidance-step span {
+  color: #a5b4fc;
+}
+
+.subby-text-button:hover,
+.agent-task-actions button:hover,
+.file-rail-empty button:hover {
+  color: #e0e7ff;
+}
+
+.status-cyan,
+.status-purple,
+.state-button.review,
+.state-button.ready,
+.media-callout {
+  border-color: rgba(129, 140, 248, 0.34);
+  background: rgba(99, 102, 241, 0.10);
+  color: #c7d2fe;
+}
+
+.status-amber,
+.tool-status,
+.workspace-safety-note,
+.coming-soon-badge {
+  border-color: rgba(245, 158, 11, 0.30);
+  background: rgba(245, 158, 11, 0.07);
+  color: #fcd58a;
+}
+
+.status-slate,
+.state-button.draft,
+.state-button.planned {
+  border-color: #3a4350;
+  background: rgba(156, 163, 175, 0.08);
+  color: #c5cad3;
+}
+
+.subby-pulse {
+  background: var(--subby-success);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+}
+
+.subby-form input,
+.subby-form textarea,
+.subby-form select,
+.chat-project-select select,
+.workspace-project-bar,
+.workspace-project-bar select,
+.tool-project-chooser,
+.tool-project-chooser select,
+.editor-actions select,
+.editor-path input,
+.chat-composer textarea,
+.composer-model-profile select,
+.subby-inline-comment-form input {
+  border-color: var(--subby-border);
+  background: #0f131a;
+  color: var(--subby-text-primary);
+}
+
+.subby-form input::placeholder,
+.subby-form textarea::placeholder,
+.chat-composer textarea::placeholder,
+.editor-area textarea::placeholder,
+.subby-inline-comment-form input::placeholder {
+  color: var(--subby-text-muted);
+}
+
+.subby-form input:focus,
+.subby-form textarea:focus,
+.subby-form select:focus,
+.chat-project-select select:focus,
+.composer-model-profile select:focus-visible,
+.subby-inline-comment-form input:focus {
+  border-color: var(--subby-primary-hover);
+  box-shadow: 0 0 0 3px var(--subby-focus-ring);
+}
+
+.subby-modal-backdrop {
+  background: rgba(4, 6, 9, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.subby-modal,
+.composer-tool-menu,
+.subby-auth-card {
+  border-color: var(--subby-border);
+  background: var(--subby-surface-elevated);
+  box-shadow: 0 22px 62px rgba(0, 0, 0, 0.40);
+}
+
+.subby-auth-shell {
+  background: radial-gradient(42rem 28rem at 50% 0, rgba(99, 102, 241, 0.15), transparent 64%), var(--subby-background);
+}
+
+.subby-auth-grid {
+  opacity: 0.16;
+  background-image: linear-gradient(rgba(129, 140, 248, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(129, 140, 248, 0.12) 1px, transparent 1px);
+}
+
+.composer-plus-button,
+.chat-composer button[type="submit"] {
+  border-color: rgba(129, 140, 248, 0.70);
+  background: var(--subby-primary);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.composer-plus-button:hover,
+.chat-composer button[type="submit"]:hover:not(:disabled) {
+  background: var(--subby-primary-hover);
+  filter: none;
+}
+
+.composer-vault-button {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(34, 197, 94, 0.08);
+  color: #86efac;
+}
+
+.composer-vault-button:hover {
+  background: rgba(34, 197, 94, 0.14);
+}
+
+.composer-mode-switch,
+.composer-model-profile select,
+.subby-diff-mode {
+  border-color: var(--subby-border);
+  background: #0f131a;
+}
+
+.composer-mode-switch button {
+  color: var(--subby-text-secondary);
+}
+
+.composer-mode-switch button.active {
+  background: rgba(99, 102, 241, 0.18);
+  color: #eef2ff;
+  box-shadow: none;
+}
+
+.composer-tool-menu-head {
+  border-color: var(--subby-border);
+  background: var(--subby-surface-elevated);
+}
+
+.composer-tool-item:hover,
+.composer-context-list button:hover {
+  border-color: rgba(129, 140, 248, 0.34);
+  background: rgba(99, 102, 241, 0.10);
+}
+
+.composer-tool-item > svg,
+.composer-context-list button > svg,
+.chat-activity-summary-icon {
+  color: #c7d2fe;
+}
+
+.chat-activity-feed {
+  border-color: var(--subby-border);
+  background: rgba(24, 29, 39, 0.78);
+}
+
+.chat-activity-feed > summary,
+.chat-activity-item strong {
+  color: var(--subby-text-primary);
+}
+
+.chat-activity-summary-icon,
+.chat-activity-item > span,
+.chat-activity-working > span {
+  background: rgba(99, 102, 241, 0.16);
+}
+
+.chat-activity-list {
+  border-color: var(--subby-border-subtle);
+}
+
+.chat-message-row > .chat-message-bubble:not(.bg-primary) {
+  border-color: var(--subby-border);
+  background: var(--subby-surface-elevated);
+  color: var(--subby-text-primary);
+}
+
+.chat-message-row > .chat-user-message {
+  border-color: rgba(129, 140, 248, 0.40);
+  background: rgba(99, 102, 241, 0.10);
+  color: var(--subby-text-primary);
+}
+
+.chat-message-content,
+.chat-message-content :is(p, li, strong, em, blockquote) {
+  color: var(--subby-text-primary);
+}
+
+.chat-message-content :is(h1, h2, h3, h4, h5, h6) {
+  color: #ffffff;
+}
+
+.chat-message-content :is(a, a:visited) {
+  color: #a5b4fc;
+}
+
+.chat-message-content pre,
+.subby-diff-active pre,
+.subby-split-diff,
+.editor-area,
+.runbook-item,
+.deployment-item {
+  border-color: var(--subby-border-subtle);
+  background: #0d1016;
+}
+
+.chat-message-content pre,
+.chat-message-content pre.shiki,
+.chat-message-content pre[style] {
+  background: #0f131a !important;
+  color: #d7dcff !important;
+}
+
+.chat-message-content pre :is(code, code *, .line, .line *) {
+  color: inherit !important;
+  background: transparent !important;
+}
+
+.chat-message-content :is(code, pre code),
+.runbook-item code,
+.editor-area textarea {
+  color: #d7dcff;
+}
+
+.subby-diff-review,
+.subby-review-resume {
+  border-color: rgba(129, 140, 248, 0.30);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.subby-diff-review-head strong,
+.subby-review-resume strong,
+.subby-inline-comment span,
+.subby-diff-active-title {
+  color: #c7d2fe;
+}
+
+.subby-diff-files button.active,
+.subby-diff-file-actions button.selected,
+.subby-diff-mode button.active,
+.subby-actions-refresh,
+.subby-inline-comment-form button,
+.subby-review-resume button {
+  border-color: rgba(129, 140, 248, 0.38);
+  background: rgba(99, 102, 241, 0.16);
+  color: #e0e7ff;
+}
+
+.subby-diff-file-actions button.selected.rejected {
+  border-color: rgba(239, 68, 68, 0.42);
+  background: rgba(239, 68, 68, 0.10);
+  color: #fecaca;
+}
+
+.subby-actions-status,
+.github-safety-note,
+.vault-safety-note {
+  border-color: var(--subby-border);
+  background: rgba(18, 22, 31, 0.75);
+}
+
+.subby-actions-run,
+.subby-diff-files button,
+.subby-diff-file-actions button,
+.subby-inline-comment-form input {
+  border-color: var(--subby-border);
+  background: #11151d;
+}
+
+.subby-actions-run:hover {
+  border-color: #394257;
+  background: var(--subby-surface-hover);
+}
+
+.subby-actions-run-dot {
+  box-shadow: none;
+}
+
+.subby-actions-run.success .subby-actions-run-dot { background: var(--subby-success); }
+.subby-actions-run.failure .subby-actions-run-dot { background: var(--subby-error); }
+
+/* Neutralize legacy cyan/teal utilities inside the authenticated workspace. */
+.subby-shell [class*="text-cyan-"],
+.subby-auth-shell [class*="text-cyan-"] {
+  color: #a5b4fc !important;
+}
+
+.subby-shell [class*="border-cyan-"],
+.subby-auth-shell [class*="border-cyan-"] {
+  border-color: rgba(129, 140, 248, 0.30) !important;
+}
+
+.subby-shell [class*="bg-cyan-"],
+.subby-auth-shell [class*="bg-cyan-"] {
+  background-color: rgba(99, 102, 241, 0.10) !important;
+}
+
+.subby-shell [class*="text-violet-"],
+.subby-auth-shell [class*="text-violet-"] {
+  color: #c4b5fd !important;
+}
+
+.subby-shell [class*="border-violet-"],
+.subby-auth-shell [class*="border-violet-"] {
+  border-color: rgba(139, 92, 246, 0.30) !important;
+}
+
+.subby-shell [class*="bg-violet-"],
+.subby-auth-shell [class*="bg-violet-"] {
+  background-color: rgba(139, 92, 246, 0.10) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .subby-pulse {
+    animation: subby-status-pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes subby-status-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.10); }
+    50% { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.02); }
+  }
+}
+
+@media (max-width: 760px) {
+  .subby-sidebar {
+    box-shadow: 14px 0 32px rgba(0, 0, 0, 0.34);
+  }
+
+  .subby-modal,
+  .composer-tool-menu {
+    background: var(--subby-surface-elevated);
+  }
+}

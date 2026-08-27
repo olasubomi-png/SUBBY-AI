@@ -203,6 +203,16 @@
 # Release Publication
 
 - [x] Push the completed Gemini, OAuth, and mobile Chat responsiveness releases to the private `olasubomi-png/SUBBY-AI` GitHub repository.
+- [x] Deploy the completed mobile Chat responsiveness bundle to the VPS and verify the primary HTTPS host serves the updated release.
+
+# Professional Visual System Redesign
+
+- [x] Audit current global styles and component surfaces for hard-coded neon cyan, teal, purple, gradients, and glow effects.
+- [x] Define semantic graphite, neutral-surface, typography, indigo, violet, border, and status design tokens in the centralized theme layer.
+- [x] Establish consistent primary, secondary, ghost, and destructive interaction states with restrained hover and accessible focus treatment.
+- [x] Apply the calm professional visual system across public pages, dashboard navigation, Chat, composer, Workspace pages, dialogs, forms, code blocks, and notifications without altering product behavior.
+- [x] Verify text contrast, active and focus states, and the redesigned core experience on desktop plus 360px, 390px, and 412px mobile viewports.
+- [ ] Run automated checks, save a checkpoint, and deploy the visual redesign to the VPS only after validation passes.
 
 # Project TODO
 
