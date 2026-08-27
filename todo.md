@@ -179,3 +179,12 @@
 - [x] Build, deploy, and verify the fixes on `https://subby.kdns.fr` across mobile and desktop layouts; the VPS service is active and the public app shell returns 200.
 - [x] Redirect the temporary nip.io hostname to `https://subby.kdns.fr` so old bookmarks cannot open a stale or unrelated project flow.
 - [x] Split heavy chat/media dependencies from the initial route so the VPS mobile page can render promptly without desktop-site mode; the initial bundle is now separate from the Chat chunk.
+
+# Gemini Provider Integration
+
+- [x] Audit current AI chat and GitHub-assisted repository paths for Gemini provider integration points.
+- [x] Add a server-only Gemini provider abstraction with configurable fast, coding, and reasoning model routing.
+- [x] Add secure `GEMINI_API_KEY` configuration documentation without placing a key or environment file in source control.
+- [x] Route Chat and AI-assisted repository inspection/proposal requests through Gemini with clear configuration and usage errors.
+- [x] Add provider-routing and secret-safety regression tests, then validate the production build.
+- [ ] Configure the Gemini key on the VPS, deploy, and verify live Chat and repository assistance.

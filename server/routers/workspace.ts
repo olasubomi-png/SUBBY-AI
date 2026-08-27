@@ -2,14 +2,14 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { activityEvents, agentTasks, chatMessages, chatSessions, commandDrafts, deploymentPlans, githubRepositories, mediaAssets, projectSecrets, projects, repositoryProfiles, workspaceFiles } from "../../drizzle/schema";
 import { getDb } from "../db";
-import { invokeLLM, listLLMModels } from "../_core/llm";
 import { generateImage } from "../_core/imageGeneration";
 import { encryptProjectSecret, isProjectVaultConfigured } from "../projectSecrets";
 import { buildSafeChatContext, buildSubbySystemPrompt } from "../chatContext";
 import { selectRepositoryBranch } from "../chatRepository";
 import { getUserRepository, listGitHubRepositoryBranches } from "../github";
 import { protectedProcedure, router } from "../_core/trpc";
-import { modelProfiles, selectModel } from "../modelProfiles";
+import { modelProfiles } from "../modelProfiles";
+import { completeSubbyAi } from "../providers";
 
 const projectStatus = z.enum(["planning", "building", "review", "paused"]);
 const taskStatus = z.enum(["queued", "in_progress", "completed"]);
@@ -205,10 +205,8 @@ export const workspaceRouter = router({
       const chronological = [...priorMessages].reverse();
 
       await db.insert(chatMessages).values({ userId: ctx.user.id, sessionId, projectId: sessionProjectId, role: "user", content: input.content });
-      const { data: models } = await listLLMModels();
-      const model = selectModel(models, input.modelProfile);
-      const response = await invokeLLM({
-        model,
+      const response = await completeSubbyAi({
+        modelProfile: input.modelProfile,
         messages: [
           {
             role: "system",
@@ -218,9 +216,7 @@ export const workspaceRouter = router({
           { role: "user", content: input.content },
         ],
       });
-      const content = typeof response.choices[0]?.message?.content === "string"
-        ? response.choices[0].message.content
-        : "I could not generate a response. Please try again.";
+      const content = response.content;
       const [result] = await db.insert(chatMessages).values({ userId: ctx.user.id, sessionId, projectId: sessionProjectId, role: "assistant", content });
       await db.update(chatSessions).set({ title: existingSession?.title === "New conversation" ? input.content.slice(0, 80) : existingSession?.title ?? input.content.slice(0, 80) }).where(eq(chatSessions.id, sessionId));
       await appendActivity(ctx.user.id, { projectId: sessionProjectId, kind: "chat", title: "Asked SUBBY", detail: input.content.slice(0, 96) });

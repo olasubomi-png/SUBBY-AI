@@ -6,9 +6,9 @@ import { beginGitHubConnection, getGitHubConnection, getProjectRepository, getUs
 import { isGitHubOAuthConfigured } from "../githubConfig";
 import { normalizeWorkflowRun, supportsManualDispatch, type GitHubWorkflowRunResponse } from "../githubWorkflow";
 import { analyzeRepositoryFiles, intelligenceSummary } from "../repositoryIntelligence";
-import { invokeLLM, listLLMModels } from "../_core/llm";
 import { buildGitTreeBlobs, combinedCommitMessage, combinedSummary, normalizeReviewedChanges, type ReviewedFileChange } from "../githubChangeReview";
 import { protectedProcedure, router } from "../_core/trpc";
+import { completeSubbyAi } from "../providers";
 
 const projectInput = z.object({ projectId: z.number().int().positive() });
 const repositoryPath = (fullName: string) => fullName.split("/").map(encodeURIComponent).join("/");
@@ -166,11 +166,9 @@ export const githubRouter = router({
     .mutation(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
       const file = await repositoryText(ctx.user.id, input.projectId, input.path, input.branch, input.repositoryId);
-      const { data: models } = await listLLMModels();
-      const model = models.find((entry) => entry.id.startsWith("claude-"))?.id ?? models.find((entry) => entry.id.startsWith("gpt-"))?.id ?? models[0]?.id;
-      const response = await invokeLLM({ model, messages: [{ role: "system", content: "You are SUBBY, a senior software engineer. Review only the supplied repository file. Give concise, actionable findings with severity, exact evidence, and verification steps. Do not claim that you ran tests or changed code." }, { role: "user", content: `Question: ${input.question}\n\nFile: ${input.path}\n\n\`\`\`\n${file.content}\n\`\`\`` }] });
+      const response = await completeSubbyAi({ task: "coding", messages: [{ role: "system", content: "You are SUBBY, a senior software engineer. Review only the supplied repository file. Give concise, actionable findings with severity, exact evidence, and verification steps. Do not claim that you ran tests or changed code." }, { role: "user", content: `Question: ${input.question}\n\nFile: ${input.path}\n\n\`\`\`\n${file.content}\n\`\`\`` }] });
       await recordGitHubActivity(ctx.user.id, input.projectId, "AI reviewed repository file", input.path);
-      return { review: typeof response.choices[0]?.message?.content === "string" ? response.choices[0].message.content : "No review was generated." };
+      return { review: response.content };
     }),
 
   proposeFileFix: protectedProcedure
@@ -178,12 +176,8 @@ export const githubRouter = router({
     .mutation(async ({ ctx, input }) => {
       await requireProject(ctx.user.id, input.projectId);
       const file = await repositoryText(ctx.user.id, input.projectId, input.path, input.branch, input.repositoryId);
-      const { data: models } = await listLLMModels();
-      const model = models.find((entry) => entry.id.startsWith("claude-"))?.id ?? models.find((entry) => entry.id.startsWith("gpt-"))?.id ?? models[0]?.id;
-      const response = await invokeLLM({ model, response_format: { type: "json_schema", json_schema: { name: "subby_file_fix", strict: true, schema: { type: "object", properties: { summary: { type: "string" }, commitMessage: { type: "string" }, content: { type: "string" } }, required: ["summary", "commitMessage", "content"], additionalProperties: false } } }, messages: [{ role: "system", content: "You are SUBBY, a careful senior software engineer. Return a safe targeted full-file replacement for the requested change. Preserve unrelated behavior. Never include credentials or secrets." }, { role: "user", content: `Change request: ${input.instruction}\n\nPath: ${input.path}\n\nCurrent file:\n\`\`\`\n${file.content}\n\`\`\`` }] });
-      const content = response.choices[0]?.message?.content;
-      if (typeof content !== "string") throw new Error("SUBBY could not produce a structured code proposal.");
-      const proposal = JSON.parse(content) as { summary: string; commitMessage: string; content: string };
+      const response = await completeSubbyAi({ task: "coding", responseJsonSchema: { type: "object", properties: { summary: { type: "string" }, commitMessage: { type: "string" }, content: { type: "string" } }, required: ["summary", "commitMessage", "content"], additionalProperties: false }, messages: [{ role: "system", content: "You are SUBBY, a careful senior software engineer. Return a safe targeted full-file replacement for the requested change. Preserve unrelated behavior. Never include credentials or secrets." }, { role: "user", content: `Change request: ${input.instruction}\n\nPath: ${input.path}\n\nCurrent file:\n\`\`\`\n${file.content}\n\`\`\`` }] });
+      const proposal = JSON.parse(response.content) as { summary: string; commitMessage: string; content: string };
       await recordGitHubActivity(ctx.user.id, input.projectId, "AI prepared code proposal", input.path);
       return { ...proposal, path: input.path, baseSha: file.sha, baseContent: file.content };
     }),

@@ -3,12 +3,11 @@ import type { TrpcContext } from "./_core/context";
 
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
-  invokeLLM: vi.fn(),
-  listLLMModels: vi.fn(),
+  completeSubbyAi: vi.fn(),
 }));
 
 vi.mock("./db", () => ({ getDb: mocks.getDb }));
-vi.mock("./_core/llm", () => ({ invokeLLM: mocks.invokeLLM, listLLMModels: mocks.listLLMModels }));
+vi.mock("./providers", () => ({ completeSubbyAi: mocks.completeSubbyAi }));
 
 import { appRouter } from "./routers";
 
@@ -30,13 +29,12 @@ describe("workspace.askSubby session context", () => {
       update: () => ({ set: () => ({ where: async () => undefined }) }),
     };
     mocks.getDb.mockResolvedValue(db);
-    mocks.listLLMModels.mockResolvedValue({ data: [{ id: "gpt-test" }] });
-    mocks.invokeLLM.mockResolvedValue({ choices: [{ message: { content: "Safe answer" } }] });
+    mocks.completeSubbyAi.mockResolvedValue({ content: "Safe answer", provider: "gemini", model: "gemini-test" });
   });
 
   it("injects selected project and repository metadata but no vault values into the LLM request", async () => {
     const result = await appRouter.createCaller(context()).workspace.askSubby({ sessionId: 11, content: "Review the architecture" });
-    const systemPrompt = mocks.invokeLLM.mock.calls[0][0].messages[0].content as string;
+    const systemPrompt = mocks.completeSubbyAi.mock.calls[0][0].messages[0].content as string;
 
     expect(result.content).toBe("Safe answer");
     expect(systemPrompt).toContain("Project: Vegas");
