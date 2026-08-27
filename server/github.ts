@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import axios from "axios";
 import type { Express, Request } from "express";
 import { and, eq } from "drizzle-orm";
@@ -25,6 +25,13 @@ export type GithubRepository = { id: number; full_name: string; name: string; pr
 function base64Url(bytes: Buffer) { return bytes.toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_"); }
 function hash(value: string) { return createHash("sha256").update(value).digest("hex"); }
 function codeChallenge(verifier: string) { return base64Url(createHash("sha256").update(verifier).digest()); }
+export function matchesGitHubOAuthStateCookie(state: string, cookieHeader?: string) {
+  const cookieState = parseCookieHeader(cookieHeader ?? "").github_oauth_state;
+  if (!state || !cookieState) return false;
+  const expected = Buffer.from(state);
+  const received = Buffer.from(cookieState);
+  return expected.length === received.length && timingSafeEqual(expected, received);
+}
 
 async function exchangeToken(params: Record<string, string>) {
   const response = await axios.post<TokenResult>("https://github.com/login/oauth/access_token", new URLSearchParams({ client_id: process.env.GITHUB_CLIENT_ID ?? "", client_secret: process.env.GITHUB_CLIENT_SECRET ?? "", ...params }).toString(), { headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "SUBBY-AI" }, timeout: 20_000 });
@@ -139,6 +146,10 @@ export async function registerGitHubOAuthRoutes(app: Express) {
       if (!db) throw new Error("Workspace storage is currently unavailable.");
       const [record] = await db.select().from(githubOAuthStates).where(eq(githubOAuthStates.stateHash, hash(state))).limit(1);
       if (!record || record.expiresAt.getTime() < Date.now()) throw new Error("This GitHub authorization request expired. Please try again.");
+      if (record.intent === "login" && !matchesGitHubOAuthStateCookie(state, req.headers.cookie)) {
+        res.clearCookie("github_oauth_state", { path: "/", secure: true, sameSite: "lax" });
+        throw new Error("GitHub sign-in could not be verified in this browser. Please try again.");
+      }
       await db.delete(githubOAuthStates).where(eq(githubOAuthStates.id, record.id));
       const token = await exchangeToken({ code, redirect_uri: githubOAuthCallbackUrl, code_verifier: record.codeVerifier });
       const userResponse = await githubApi.get<GithubUser & { id: number; name?: string; email?: string }>("/user", { headers: { Authorization: `Bearer ${token.access_token}` } });

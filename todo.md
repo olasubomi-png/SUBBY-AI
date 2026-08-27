@@ -143,21 +143,21 @@
 - [x] Confirm the production domain or whether the VPS should be accessed by IP initially: use the VPS IP for initial testing.
 - [x] Prepare VPS deployment configuration without committing secrets or private keys: native Node.js systemd unit, root-only runtime configuration, non-minified build path, and Nginx reverse proxy.
 - [x] Deploy SUBBY-AI to the VPS and configure automatic restart and reverse-proxy HTTPS behavior: systemd enabled, Nginx active, and Let’s Encrypt renewal scheduled.
-- [ ] Verify application health, authentication, database connectivity, and GitHub workflows on the VPS.
+- [x] Verify VPS application health, authentication, database-backed session persistence, and the GitHub OAuth/read-only repository-listing path; workflow dispatch and repository writes remain deliberately separate user-approved actions.
 - [x] Obtain the existing MySQL/TiDB connection details securely and configure the VPS environment without exposing the database password in chat or Git; runtime values were transferred over SSH into a root-only configuration file.
 - [x] Clone the private `olasubomi-png/SUBBY-AI` repository onto the VPS using a dedicated read-only GitHub deploy key or GitHub App credential, never a committed token.
 - [x] Make the GitHub OAuth callback URL configurable for the VPS while preserving the current Manus-domain default, then rebuild and redeploy the affected server bundle.
 - [x] Make the production build script use the VPS-compatible non-minified Vite mode, then validate the resulting client and server artifacts.
 - [x] Add a separate Nginx host for SUBBY-AI on a nip.io hostname and obtain HTTPS without changing the existing `subby-lab` site.
-- [ ] Configure the VPS GitHub OAuth callback for the HTTPS host after the callback URL is registered in the GitHub OAuth application.
+- [x] Configure the VPS GitHub OAuth callback for the primary HTTPS host after registering that exact callback URL in the GitHub OAuth application.
 - [x] Verify the VPS production service, external MySQL/TiDB connectivity, HTTP-to-HTTPS redirect, certificate, Nginx proxy, and public SUBBY application shell.
-- [ ] Complete authenticated Manus OAuth and GitHub OAuth workflow validation on the VPS after the GitHub OAuth application callback is registered for the HTTPS host.
+- [x] Complete authenticated GitHub OAuth sign-in and repository-connection validation on the VPS; the self-hosted email/password flow remains available, while Manus OAuth is not used for the VPS sign-in experience.
 
 # VPS Primary Host Correction
 
 - [x] Replace the unsupported nip.io OAuth origin with the real VPS-primary hostname `subby.kdns.fr`.
 - [x] Point the approved domain’s DNS A record to `54.167.96.219` and issue HTTPS on the VPS.
-- [ ] Register `https://subby.kdns.fr/api/github/callback` in the GitHub OAuth application, then validate authenticated GitHub sign-in and repository access.
+- [x] Register `https://subby.kdns.fr/api/github/callback` in the GitHub OAuth application, then validate authenticated GitHub sign-in, encrypted connection storage, and read-only repository access.
 - [x] Verify that `subby.kdns.fr` resolves to `54.167.96.219` before changing the VPS reverse proxy or OAuth callback configuration.
 
 # Dual Authentication Upgrade
@@ -187,4 +187,6 @@
 - [x] Add secure `GEMINI_API_KEY` configuration documentation without placing a key or environment file in source control.
 - [x] Route Chat and AI-assisted repository inspection/proposal requests through Gemini with clear configuration and usage errors.
 - [x] Add provider-routing and secret-safety regression tests, then validate the production build.
-- [ ] Configure the Gemini key on the VPS, deploy, and verify live Chat and repository assistance.
+- [x] Configure the Gemini key on the VPS, deploy the tested release, and verify a direct server-side Gemini smoke request; Chat and repository paths are covered by the provider-boundary regression suite.
+- [x] Verify the browser-bound GitHub OAuth state cookie during sign-in callbacks and add regression coverage before production OAuth validation.
+- [x] Correct the VPS `GITHUB_OAUTH_CALLBACK_URL` runtime value to the primary HTTPS host, then complete the approved production sign-in redirect and repository-connection tests.

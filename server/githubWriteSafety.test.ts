@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getGitHubOAuthCallbackUrl, isProtectedBranchRejection } from "./github";
+import { getGitHubOAuthCallbackUrl, isProtectedBranchRejection, matchesGitHubOAuthStateCookie } from "./github";
 
 describe("GitHub protected-branch safeguards", () => {
   it("detects branch-protection responses without misclassifying other forbidden errors", () => {
@@ -13,5 +13,11 @@ describe("GitHub OAuth callback configuration", () => {
   it("supports a VPS callback override and preserves the hosted default", () => {
     expect(getGitHubOAuthCallbackUrl("http://54.167.96.219:3001/api/github/callback")).toBe("http://54.167.96.219:3001/api/github/callback");
     expect(getGitHubOAuthCallbackUrl(undefined)).toBe("https://subbyai-nzrssmce.manus.space/api/github/callback");
+  });
+
+  it("requires the login callback state to match the initiating browser cookie", () => {
+    expect(matchesGitHubOAuthStateCookie("state_123", "github_oauth_state=state_123")).toBe(true);
+    expect(matchesGitHubOAuthStateCookie("state_123", "github_oauth_state=other_state")).toBe(false);
+    expect(matchesGitHubOAuthStateCookie("state_123", undefined)).toBe(false);
   });
 });
