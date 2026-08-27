@@ -214,6 +214,16 @@
 - [x] Verify text contrast, active and focus states, and the redesigned core experience on desktop plus 360px, 390px, and 412px mobile viewports.
 - [x] Run automated checks, save a checkpoint, and deploy the visual redesign to the VPS only after validation passes.
 
+# Deliberate Chat and Composer Redesign
+
+- [x] Audit the current Chat page, conversation rail, message rendering, markdown/code/table/image treatment, composer behavior, and responsive constraints without touching backend integrations.
+- [x] Restructure the Chat canvas around a conversation-first layout with a quiet sidebar, generous desktop whitespace, document-like assistant responses, and restrained user messages.
+- [x] Replace the current composer composition with one unified, auto-growing, keyboard-accessible, stable send/loading, attachment-aware interaction surface; the current backend does not expose a cancellable generation request, so the UI does not present a deceptive stop control.
+- [x] Refine Chat-specific mobile and tablet behavior at 320px, 360px, 375px, 390px, 412px, 480px, 768px, and 1024px without viewport hacks, clipped content, or horizontal overflow.
+- [x] Add or update UI regression tests for message hierarchy, composer controls, loading-state structure, and overflow-safe markdown behavior.
+- [x] Run TypeScript, the complete Vitest suite, and the production build; visually inspect Chat at 1280px, 1440px, and 1920px before committing and deploying.
+- [ ] Commit, checkpoint, push, and deploy the complete Chat experience redesign to the VPS after validation succeeds.
+
 # Project TODO
 
 - [x] Define persisted records for projects, agent tasks, activity events, and chat messages.

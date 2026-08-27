@@ -6,10 +6,13 @@ vi.mock("streamdown", () => ({ Streamdown: ({ children }: { children: string }) 
 
 import { AIChatBox } from "../client/src/components/AIChatBox";
 
-describe("AIChatBox composer actions", () => {
-  it("renders a functional action slot beside the message composer without allowing message content to overflow", () => {
+describe("AIChatBox conversation and composer", () => {
+  it("renders document-like assistant content, a restrained user message, and one unified composer with safe overflow boundaries", () => {
     const html = renderToStaticMarkup(createElement(AIChatBox, {
-      messages: [{ role: "assistant", content: "A long repository response with `very-long-token-that-must-wrap-inside-the-message-bubble`.\n\n![Generated image](https://media.example/generated.png)" }],
+      messages: [
+        { role: "user", content: "Please inspect this long repository response." },
+        { role: "assistant", content: "A long repository response with `very-long-token-that-must-wrap-inside-the-message-bubble`.\n\n![Generated image](https://media.example/generated.png)" },
+      ],
       onSendMessage: vi.fn(),
       composerActions: createElement("button", { type: "button", "aria-label": "Add to chat" }, "Add to chat"),
       onOpenVault: vi.fn(),
@@ -19,8 +22,8 @@ describe("AIChatBox composer actions", () => {
       onModeChange: vi.fn(),
     }));
 
-    expect(html).toContain("Agent mode");
-    expect(html).toContain("Plan mode");
+    expect(html).toContain(">Agent<");
+    expect(html).toContain(">Plan<");
     expect(html).toContain("Work through approved actions");
     expect(html).toContain("Add to chat");
     expect(html).toContain("Open Project Vault to store a secret");
@@ -29,6 +32,24 @@ describe("AIChatBox composer actions", () => {
     expect(html).toContain("overflow-hidden");
     expect(html).toContain("chat-message-bubble");
     expect(html).toContain("chat-message-content");
+    expect(html).toContain("chat-user-message");
+    expect(html).toContain("chat-assistant-message");
     expect(html).toContain("chat-composer-row");
+    expect(html).toContain("chat-composer-frame");
+    expect(html).toContain("chat-composer-input");
+    expect(html).toContain("Enter to send");
+  });
+
+  it("keeps the send-control footprint stable and clearly communicates the response-preparation state", () => {
+    const html = renderToStaticMarkup(createElement(AIChatBox, {
+      messages: [{ role: "user", content: "Please review this file." }],
+      onSendMessage: vi.fn(),
+      isLoading: true,
+      height: "400px",
+    }));
+
+    expect(html).toContain("chat-send-button");
+    expect(html).toContain("SUBBY is preparing a response");
+    expect(html).toContain("disabled");
   });
 });

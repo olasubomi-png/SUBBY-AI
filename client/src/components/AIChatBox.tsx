@@ -169,6 +169,15 @@ export function AIChatBox({
     requestAnimationFrame(() => textareaRef.current?.focus());
   }, [draft?.id]);
 
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "0px";
+    const nextHeight = Math.min(textarea.scrollHeight, 208);
+    textarea.style.height = `${Math.max(nextHeight, 52)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > 208 ? "auto" : "hidden";
+  }, [input]);
+
   // Scroll to bottom helper function with smooth animation
   const scrollToBottom = () => {
     const viewport = scrollAreaRef.current?.querySelector(
@@ -215,7 +224,7 @@ export function AIChatBox({
     <div
       ref={containerRef}
       className={cn(
-        "chat-shell flex min-w-0 max-w-full flex-col overflow-hidden bg-card text-card-foreground rounded-lg border shadow-sm",
+        "chat-shell flex min-w-0 max-w-full flex-col overflow-hidden text-card-foreground",
         className
       )}
       style={{ height }}
@@ -223,7 +232,7 @@ export function AIChatBox({
       {/* Messages Area */}
       <div ref={scrollAreaRef} className="chat-messages min-w-0 max-w-full flex-1 overflow-hidden">
         {displayMessages.length === 0 ? (
-          <div className="flex h-full flex-col p-4">
+          <div className="chat-empty-state flex h-full flex-col">
             <div className="flex flex-1 flex-col items-center justify-center gap-6 text-muted-foreground">
               <div className="flex flex-col items-center gap-3">
                 <Sparkles className="size-12 opacity-20" />
@@ -248,8 +257,8 @@ export function AIChatBox({
           </div>
         ) : (
           <ScrollArea className="chat-scroll h-full min-w-0 max-w-full">
-            <div className="chat-message-list flex min-w-0 max-w-full flex-col space-y-4 p-4">
-              {activityItems.length > 0 && <details className="chat-activity-feed" open aria-label="SUBBY work activity"><summary><span className="chat-activity-summary-icon"><Sparkles className="size-3.5" /></span><strong>Workspace</strong><small>{activityItems.filter((item) => item.status === "working").length ? "Working now" : `${Math.min(activityItems.length, 8)} recent actions`}</small></summary><div className="chat-activity-list">{activityItems.slice(0, 8).map((item) => <div className={`chat-activity-item chat-activity-${item.status}`} key={item.id}><span>{item.status === "working" ? <Loader2 className="size-3.5 animate-spin" /> : item.status === "failed" ? "!" : "✓"}</span><div><strong>{item.title}</strong>{item.detail && <small>{item.detail}</small>}</div></div>)}</div></details>}
+            <div className="chat-message-list flex min-w-0 max-w-full flex-col space-y-6">
+              {activityItems.length > 0 && <details className="chat-activity-feed" aria-label="SUBBY work activity"><summary><span className="chat-activity-summary-icon"><Sparkles className="size-3.5" /></span><strong>Workspace activity</strong><small>{activityItems.filter((item) => item.status === "working").length ? "Working now" : `${Math.min(activityItems.length, 8)} recent actions`}</small></summary><div className="chat-activity-list">{activityItems.slice(0, 8).map((item) => <div className={`chat-activity-item chat-activity-${item.status}`} key={item.id}><span>{item.status === "working" ? <Loader2 className="size-3.5 animate-spin" /> : item.status === "failed" ? "!" : "✓"}</span><div><strong>{item.title}</strong>{item.detail && <small>{item.detail}</small>}</div></div>)}</div></details>}
               {displayMessages.map((message, index) => {
                 const generatedMedia = message.role === "assistant" ? extractGeneratedMedia(message.content) : null;
                 return (
@@ -263,17 +272,17 @@ export function AIChatBox({
                     )}
                   >
                     {message.role === "assistant" && (
-                      <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
+                      <div className="chat-assistant-avatar size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
                         <Sparkles className="size-4 text-primary" />
                       </div>
                     )}
 
                     <div
                       className={cn(
-                        "chat-message-bubble min-w-0 max-w-full overflow-hidden break-words rounded-lg px-4 py-2.5 sm:max-w-[80%]",
+                        "chat-message-bubble min-w-0 max-w-full overflow-hidden break-words",
                         message.role === "user"
-                          ? "chat-user-message border border-primary/30 bg-primary/10 text-primary-foreground"
-                          : "border border-slate-700/50 bg-slate-900/95 text-slate-100"
+                          ? "chat-user-message text-primary-foreground"
+                          : "chat-assistant-message text-slate-100"
                       )}
                     >
                       {message.role === "assistant" ? (
@@ -290,7 +299,7 @@ export function AIChatBox({
                     </div>
 
                     {message.role === "user" && (
-                      <div className="size-8 shrink-0 mt-1 rounded-full bg-secondary flex items-center justify-center">
+                      <div className="chat-user-avatar size-8 shrink-0 mt-1 rounded-full bg-secondary flex items-center justify-center">
                         <User className="size-4 text-secondary-foreground" />
                       </div>
                     )}
@@ -300,10 +309,10 @@ export function AIChatBox({
 
               {isLoading && (
                   <div className="flex items-start gap-3">
-                  <div className="size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="chat-assistant-avatar size-8 shrink-0 mt-1 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="size-4 text-primary" />
                   </div>
-                  <div className="chat-loading-bubble min-w-0 max-w-full rounded-lg bg-muted px-4 py-2.5">
+                  <div className="chat-loading-bubble min-w-0 max-w-full">
                     <Loader2 className="size-4 animate-spin text-muted-foreground" />
                   </div>
                 </div>
@@ -317,32 +326,32 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="chat-composer relative flex min-w-0 max-w-full flex-col gap-2 border-t bg-background/50 p-4"
+        className="chat-composer chat-composer-dock relative flex min-w-0 max-w-full flex-col"
       >
-        {(onModeChange || onModelProfileChange) && <div className="composer-settings-row">{onModeChange && <div className="composer-mode-switch" role="group" aria-label="Chat mode"><button type="button" onClick={() => onModeChange("agent")} className={mode === "agent" ? "active" : ""}><span>Agent mode</span><small>Work through approved actions</small></button><button type="button" onClick={() => onModeChange("plan")} className={mode === "plan" ? "active" : ""}><span>Plan mode</span><small>Plan before any action</small></button></div>}{onModelProfileChange && <label className="composer-model-profile"><span>Model</span><select value={modelProfile ?? "auto"} onChange={(event) => onModelProfileChange(event.target.value as "auto" | "quality" | "fast" | "economy")} aria-label="Choose AI model profile"><option value="auto">Auto</option><option value="quality">Best quality</option><option value="fast">Fast</option><option value="economy">Economy</option></select></label>}</div>}
-        <div className="chat-composer-row flex min-w-0 max-w-full items-end gap-2">{composerActions}
-        {onOpenVault && <button type="button" onClick={onOpenVault} className="composer-vault-button" aria-label="Open Project Vault to store a secret"><KeyRound className="size-4" /></button>}
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="flex-1 max-h-32 resize-none min-h-9"
-          rows={1}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!input.trim() || isLoading}
-          className="shrink-0 h-[38px] w-[38px]"
-        >
-          {isLoading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
-        </Button></div>
+        <div className="chat-composer-frame">
+          {(onModeChange || onModelProfileChange) && <div className="composer-settings-row">{onModeChange && <div className="composer-mode-switch" role="group" aria-label="Chat mode"><button type="button" onClick={() => onModeChange("agent")} className={mode === "agent" ? "active" : ""}><span>Agent</span><small>Work through approved actions</small></button><button type="button" onClick={() => onModeChange("plan")} className={mode === "plan" ? "active" : ""}><span>Plan</span><small>Plan before any action</small></button></div>}{onModelProfileChange && <label className="composer-model-profile"><span>Model</span><select value={modelProfile ?? "auto"} onChange={(event) => onModelProfileChange(event.target.value as "auto" | "quality" | "fast" | "economy")} aria-label="Choose AI model profile"><option value="auto">Auto</option><option value="quality">Best quality</option><option value="fast">Fast</option><option value="economy">Economy</option></select></label>}</div>}
+          <div className="chat-composer-row flex min-w-0 max-w-full items-end gap-2">{composerActions}
+          {onOpenVault && <button type="button" onClick={onOpenVault} className="composer-vault-button" aria-label="Open Project Vault to store a secret"><KeyRound className="size-4" /></button>}
+          <Textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="chat-composer-input flex-1 resize-none"
+            rows={1}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!input.trim() || isLoading}
+            aria-label={isLoading ? "SUBBY is preparing a response" : "Send message"}
+            className="chat-send-button shrink-0"
+          >
+            {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          </Button></div>
+          <p className="composer-hint" aria-live="polite">{isLoading ? "SUBBY is preparing a response…" : "Enter to send · Shift + Enter for a new line"}</p>
+        </div>
       </form>
     </div>
   );
